@@ -2,6 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./config/db";
+import apiRoutes from "./routes";
 
 dotenv.config();
 
@@ -18,6 +19,13 @@ app.get("/api/health", async (_req, res) => {
   } catch (error) {
     res.status(500).json({ status: "error", message: "Database connection failed" });
   }
+});
+
+app.use("/api", apiRoutes);
+
+app.use((err: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
+  console.error(err);
+  res.status(500).json({ message: "Something went wrong on our end." });
 });
 
 app.listen(PORT, () => {
