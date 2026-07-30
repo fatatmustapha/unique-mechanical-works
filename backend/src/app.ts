@@ -1,10 +1,16 @@
-import express, { type Express, type Request, type Response } from "express";
+import express, {
+  type Express,
+  type NextFunction,
+  type Request,
+  type Response,
+} from "express";
 import helmet from "helmet";
 import cors from "cors";
 import cookieParser from "cookie-parser";
 import morgan from "morgan";
 
 import { env } from "./config/env.js";
+import healthRouter from "./routes/health.routes.js";
 
 const app: Express = express();
 
@@ -27,15 +33,28 @@ if (env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
 
-app.get("/api/health", (_request: Request, response: Response) => {
-  response.status(200).json({
-    success: true,
-    message: "Unique Mechanical Works API is running.",
-    data: {
-      status: "healthy",
-      environment: env.NODE_ENV,
-    },
-  });
-});
+app.use("/api/health", healthRouter);
+
+app.use(
+  (
+    error: unknown,
+    _request: Request,
+    response: Response,
+    _next: NextFunction,
+  ): void => {
+    if (env.NODE_ENV === "development") {
+      console.error(error);
+    }
+
+    response.status(500).json({
+      success: false,
+      error: {
+        code: "INTERNAL_SERVER_ERROR",
+        message: "An unexpected server error occurred.",
+        details: [],
+      },
+    });
+  },
+);
 
 export default app;
