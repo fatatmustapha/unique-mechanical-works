@@ -1,0 +1,135 @@
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
+
+import { databasePool } from "../config/database.js";
+import type { CustomerRegistrationInput } from "../validators/auth.validator.js";
+
+interface CustomerEmailRow extends RowDataPacket {
+  customer_id: number;
+}
+
+interface BranchRow extends RowDataPacket {
+  branch_id: number;
+}
+
+interface CreatedCustomerRow extends RowDataPacket {
+  customer_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  preferred_branch_id: number | null;
+  avatar_url: string | null;
+  address: string | null;
+  is_active: number;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface PublicCustomer {
+  customer_id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  phone: string | null;
+  preferred_branch_id: number | null;
+  avatar_url: string | null;
+  address: string | null;
+  is_active: boolean;
+  created_at: Date;
+  updated_at: Date;
+}
+
+export interface CreateCustomerData extends CustomerRegistrationInput {
+  password_hash: string;
+}
+
+export const findCustomerByEmail = async (
+  email: string,
+): Promise<{ customer_id: number } | null> => {
+  const [rows] = await databasePool.execute<CustomerEmailRow[]>(
+    `
+      SELECT customer_id
+      FROM customers
+      WHERE email = ?
+      LIMIT 1
+    `,
+    [email],
+  );
+
+  return rows[0] ?? null;
+};
+
+export const findActiveBranchById = async (
+  branchId: number,
+): Promise<{ branch_id: number } | null> => {
+  const [rows] = await databasePool.execute<BranchRow[]>(
+    `
+      SELECT branch_id
+      FROM branches
+      WHERE branch_id = ?
+        AND is_active = 1
+      LIMIT 1
+    `,
+    [branchId],
+  );
+
+  return rows[0] ?? null;
+};
+
+export const createCustomer = async (
+  data: CreateCustomerData,
+): Promise<PublicCustomer> => {
+  const [result] = await databasePool.execute<ResultSetHeader>(
+    `
+      INSERT INTO customers (
+        first_name,
+        last_name,
+        email,
+        phone,
+        password_hash,
+        preferred_branch_id
+      )
+      VALUES (?, ?, ?, ?, ?, ?)
+    `,
+    [
+      data.first_name,
+      data.last_name,
+      data.email,
+      data.phone ?? null,
+      data.password_hash,
+      data.preferred_branch_id ?? null,
+    ],
+  );
+
+  const [rows] = await databasePool.execute<CreatedCustomerRow[]>(
+    `
+      SELECT
+        customer_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        preferred_branch_id,
+        avatar_url,
+        address,
+        is_active,
+        created_at,
+        updated_at
+      FROM customers
+      WHERE customer_id = ?
+      LIMIT 1
+    `,
+    [result.insertId],
+  );
+
+  const customer = rows[0];
+
+  if (!customer) {
+    throw new Error("The newly created customer could not be retrieved.");
+  }
+
+  return {
+    ...customer,
+    is_active: customer.is_active === 1,
+  };
+};
