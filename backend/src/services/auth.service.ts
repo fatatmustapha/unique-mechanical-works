@@ -1,12 +1,27 @@
+import {
+  generateAccessToken,
+  generateRefreshToken,
+} from "../config/jwt.js";
 import { AppError } from "../errors/app-error.js";
 import {
   createCustomer,
   findActiveBranchById,
   findCustomerByEmail,
+  findCustomerForLogin,
+  updateCustomerLastLogin,
   type PublicCustomer,
 } from "../repositories/auth.repository.js";
-import { hashPassword } from "../utils/password.js";
-import type { CustomerRegistrationInput } from "../validators/auth.validator.js";
+import type { TokenPair } from "../types/auth.js";
+import { comparePassword, hashPassword } from "../utils/password.js";
+import type {
+  CustomerLoginInput,
+  CustomerRegistrationInput,
+} from "../validators/auth.validator.js";
+
+export interface CustomerLoginResult {
+  customer: PublicCustomer;
+  tokens: TokenPair;
+}
 
 export const registerCustomer = async (
   input: CustomerRegistrationInput,
@@ -39,4 +54,59 @@ export const registerCustomer = async (
     ...input,
     password_hash: passwordHash,
   });
+};
+
+export const loginCustomer = async (
+  input: CustomerLoginInput,
+): Promise<CustomerLoginResult> => {
+  const customer = await findCustomerForLogin(input.email);
+
+  if (!customer) {
+    throw new AppError({
+      statusCode: 401,
+      code: "INVALID_CREDENTIALS",
+      message: "The email address or password is incorrect.",
+    });
+  }
+
+  const passwordMatches = await comparePassword(
+    input.password,
+    customer.password_hash,
+  );
+
+  if (!passwordMatches) {
+    throw new AppError({
+      statusCode: 401,
+      code: "INVALID_CREDENTIALS",
+      message: "The email address or password is incorrect.",
+    });
+  }
+
+  if (!customer.is_active) {
+    throw new AppError({
+      statusCode: 403,
+      code: "ACCOUNT_INACTIVE",
+      message: "This customer account is inactive.",
+    });
+  }
+
+  const tokens: TokenPair = {
+    accessToken: generateAccessToken({
+      id: customer.customer_id,
+      role: "customer",
+    }),
+    refreshToken: generateRefreshToken({
+      id: customer.customer_id,
+      role: "customer",
+    }),
+  };
+
+  await updateCustomerLastLogin(customer.customer_id);
+
+  const { password_hash: _passwordHash, ...publicCustomer } = customer;
+
+  return {
+    customer: publicCustomer,
+    tokens,
+  };
 };

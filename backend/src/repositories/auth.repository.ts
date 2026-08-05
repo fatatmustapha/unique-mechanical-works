@@ -25,6 +25,10 @@ interface CreatedCustomerRow extends RowDataPacket {
   updated_at: Date;
 }
 
+interface CustomerLoginRow extends CreatedCustomerRow {
+  password_hash: string;
+}
+
 export interface PublicCustomer {
   customer_id: number;
   first_name: string;
@@ -39,9 +43,31 @@ export interface PublicCustomer {
   updated_at: Date;
 }
 
+export interface CustomerForLogin extends PublicCustomer {
+  password_hash: string;
+}
+
 export interface CreateCustomerData extends CustomerRegistrationInput {
   password_hash: string;
 }
+
+const mapPublicCustomer = (
+  customer: CreatedCustomerRow,
+): PublicCustomer => {
+  return {
+    customer_id: customer.customer_id,
+    first_name: customer.first_name,
+    last_name: customer.last_name,
+    email: customer.email,
+    phone: customer.phone,
+    preferred_branch_id: customer.preferred_branch_id,
+    avatar_url: customer.avatar_url,
+    address: customer.address,
+    is_active: customer.is_active === 1,
+    created_at: customer.created_at,
+    updated_at: customer.updated_at,
+  };
+};
 
 export const findCustomerByEmail = async (
   email: string,
@@ -57,6 +83,43 @@ export const findCustomerByEmail = async (
   );
 
   return rows[0] ?? null;
+};
+
+export const findCustomerForLogin = async (
+  email: string,
+): Promise<CustomerForLogin | null> => {
+  const [rows] = await databasePool.execute<CustomerLoginRow[]>(
+    `
+      SELECT
+        customer_id,
+        first_name,
+        last_name,
+        email,
+        phone,
+        password_hash,
+        preferred_branch_id,
+        avatar_url,
+        address,
+        is_active,
+        created_at,
+        updated_at
+      FROM customers
+      WHERE email = ?
+      LIMIT 1
+    `,
+    [email],
+  );
+
+  const customer = rows[0];
+
+  if (!customer) {
+    return null;
+  }
+
+  return {
+    ...mapPublicCustomer(customer),
+    password_hash: customer.password_hash,
+  };
 };
 
 export const findActiveBranchById = async (
@@ -128,8 +191,18 @@ export const createCustomer = async (
     throw new Error("The newly created customer could not be retrieved.");
   }
 
-  return {
-    ...customer,
-    is_active: customer.is_active === 1,
-  };
+  return mapPublicCustomer(customer);
+};
+
+export const updateCustomerLastLogin = async (
+  customerId: number,
+): Promise<void> => {
+  await databasePool.execute<ResultSetHeader>(
+    `
+      UPDATE customers
+      SET last_login_at = CURRENT_TIMESTAMP
+      WHERE customer_id = ?
+    `,
+    [customerId],
+  );
 };

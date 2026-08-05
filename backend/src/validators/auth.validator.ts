@@ -38,6 +38,22 @@ export const customerRegistrationSchema = z.object({
     .optional(),
 });
 
+export const customerLoginSchema = z.object({
+  email: z
+    .string()
+    .trim()
+    .email("A valid email address is required.")
+    .max(150, "Email must not exceed 150 characters.")
+    .transform((email) => email.toLowerCase()),
+
+  password: z
+    .string()
+    .min(1, "Password is required.")
+    .max(72, "Password must not exceed 72 characters."),
+});
+
 export type CustomerRegistrationInput = z.infer<
   typeof customerRegistrationSchema
 >;
+
+export type CustomerLoginInput = z.infer<typeof customerLoginSchema>;
