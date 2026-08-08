@@ -52,8 +52,16 @@ export const customerLoginSchema = z.object({
     .max(72, "Password must not exceed 72 characters."),
 });
 
+export const adminLoginSchema = customerLoginSchema;
+
 export type CustomerRegistrationInput = z.infer<
   typeof customerRegistrationSchema
 >;
 
-export type CustomerLoginInput = z.infer<typeof customerLoginSchema>;
+export type CustomerLoginInput = z.infer<
+  typeof customerLoginSchema
+>;
+
+export type AdminLoginInput = z.infer<
+  typeof adminLoginSchema
+>;

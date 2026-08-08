@@ -6,20 +6,29 @@ import { AppError } from "../errors/app-error.js";
 import {
   createCustomer,
   findActiveBranchById,
+  findAdminForLogin,
   findCustomerByEmail,
   findCustomerForLogin,
+  updateAdminLastLogin,
   updateCustomerLastLogin,
+  type PublicAdmin,
   type PublicCustomer,
 } from "../repositories/auth.repository.js";
 import type { TokenPair } from "../types/auth.js";
 import { comparePassword, hashPassword } from "../utils/password.js";
 import type {
+  AdminLoginInput,
   CustomerLoginInput,
   CustomerRegistrationInput,
 } from "../validators/auth.validator.js";
 
 export interface CustomerLoginResult {
   customer: PublicCustomer;
+  tokens: TokenPair;
+}
+
+export interface AdminLoginResult {
+  admin: PublicAdmin;
   tokens: TokenPair;
 }
 
@@ -93,11 +102,12 @@ export const loginCustomer = async (
   const tokens: TokenPair = {
     accessToken: generateAccessToken({
       id: customer.customer_id,
-      role: "customer",
+      accountType: "customer",
     }),
+
     refreshToken: generateRefreshToken({
       id: customer.customer_id,
-      role: "customer",
+      accountType: "customer",
     }),
   };
 
@@ -107,6 +117,74 @@ export const loginCustomer = async (
 
   return {
     customer: publicCustomer,
+    tokens,
+  };
+};
+
+export const loginAdmin = async (
+  input: AdminLoginInput,
+): Promise<AdminLoginResult> => {
+  const admin = await findAdminForLogin(input.email);
+
+  if (!admin) {
+    throw new AppError({
+      statusCode: 401,
+      code: "INVALID_CREDENTIALS",
+      message: "The email address or password is incorrect.",
+    });
+  }
+
+  const passwordMatches = await comparePassword(
+    input.password,
+    admin.password_hash,
+  );
+
+  if (!passwordMatches) {
+    throw new AppError({
+      statusCode: 401,
+      code: "INVALID_CREDENTIALS",
+      message: "The email address or password is incorrect.",
+    });
+  }
+
+  if (!admin.is_active) {
+    throw new AppError({
+      statusCode: 403,
+      code: "ACCOUNT_INACTIVE",
+      message: "This admin account is inactive.",
+    });
+  }
+
+  if (admin.role === "branch_admin" && admin.branch_id === null) {
+    throw new AppError({
+      statusCode: 403,
+      code: "ADMIN_BRANCH_NOT_ASSIGNED",
+      message: "This branch admin is not assigned to a branch.",
+    });
+  }
+
+  const tokens: TokenPair = {
+    accessToken: generateAccessToken({
+      id: admin.admin_id,
+      accountType: "admin",
+      adminRole: admin.role,
+      branchId: admin.branch_id,
+    }),
+
+    refreshToken: generateRefreshToken({
+      id: admin.admin_id,
+      accountType: "admin",
+      adminRole: admin.role,
+      branchId: admin.branch_id,
+    }),
+  };
+
+  await updateAdminLastLogin(admin.admin_id);
+
+  const { password_hash: _passwordHash, ...publicAdmin } = admin;
+
+  return {
+    admin: publicAdmin,
     tokens,
   };
 };

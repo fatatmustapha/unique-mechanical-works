@@ -1,12 +1,14 @@
 import type { NextFunction, Request, Response } from "express";
 
 import {
+  loginAdmin,
   loginCustomer,
   registerCustomer,
 } from "../services/auth.service.js";
 import { sendSuccess } from "../utils/api-response.js";
 import { setAuthCookies } from "../utils/cookies.js";
 import {
+  adminLoginSchema,
   customerLoginSchema,
   customerRegistrationSchema,
 } from "../validators/auth.validator.js";
@@ -55,6 +57,34 @@ export const login = async (
         customer: result.customer,
       },
       "Customer logged in successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const adminLogin = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const input = adminLoginSchema.parse(request.body);
+    const result = await loginAdmin(input);
+
+    setAuthCookies(
+      response,
+      result.tokens.accessToken,
+      result.tokens.refreshToken,
+    );
+
+    sendSuccess(
+      response,
+      200,
+      {
+        admin: result.admin,
+      },
+      "Admin logged in successfully.",
     );
   } catch (error: unknown) {
     next(error);

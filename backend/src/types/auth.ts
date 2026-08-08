@@ -1,6 +1,11 @@
+export type AccountType = "customer" | "admin";
+export type AdminRole = "super_admin" | "branch_admin";
+
 export interface AuthenticatedUser {
   id: number;
-  role: "customer" | "admin";
+  accountType: AccountType;
+  adminRole?: AdminRole;
+  branchId?: number | null;
 }
 
 export interface TokenPair {

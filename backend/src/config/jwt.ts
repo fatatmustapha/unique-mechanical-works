@@ -1,10 +1,16 @@
 import jwt, { type Secret, type SignOptions } from "jsonwebtoken";
 
+import type {
+  AccountType,
+  AdminRole,
+} from "../types/auth.js";
 import { env } from "./env.js";
 
 export interface JwtPayload {
   id: number;
-  role: "customer" | "admin";
+  accountType: AccountType;
+  adminRole?: AdminRole;
+  branchId?: number | null;
 }
 
 const createToken = (
@@ -17,7 +23,9 @@ const createToken = (
   } as SignOptions);
 };
 
-export const generateAccessToken = (payload: JwtPayload): string => {
+export const generateAccessToken = (
+  payload: JwtPayload,
+): string => {
   return createToken(
     payload,
     env.JWT_ACCESS_SECRET,
@@ -25,7 +33,9 @@ export const generateAccessToken = (payload: JwtPayload): string => {
   );
 };
 
-export const generateRefreshToken = (payload: JwtPayload): string => {
+export const generateRefreshToken = (
+  payload: JwtPayload,
+): string => {
   return createToken(
     payload,
     env.JWT_REFRESH_SECRET,
@@ -33,10 +43,20 @@ export const generateRefreshToken = (payload: JwtPayload): string => {
   );
 };
 
-export const verifyAccessToken = (token: string): JwtPayload => {
-  return jwt.verify(token, env.JWT_ACCESS_SECRET) as JwtPayload;
+export const verifyAccessToken = (
+  token: string,
+): JwtPayload => {
+  return jwt.verify(
+    token,
+    env.JWT_ACCESS_SECRET,
+  ) as JwtPayload;
 };
 
-export const verifyRefreshToken = (token: string): JwtPayload => {
-  return jwt.verify(token, env.JWT_REFRESH_SECRET) as JwtPayload;
+export const verifyRefreshToken = (
+  token: string,
+): JwtPayload => {
+  return jwt.verify(
+    token,
+    env.JWT_REFRESH_SECRET,
+  ) as JwtPayload;
 };
