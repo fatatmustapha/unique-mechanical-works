@@ -4,31 +4,44 @@ import type {
   Response,
 } from "express";
 
-import { sendSuccess } from "../utils/api-response.js";
-
+import { AppError } from "../errors/app-error.js";
 import {
+  createCarForAdmin,
   getPublicCar,
   getPublicCars,
+  updateCarForAdmin,
 } from "../services/car.service.js";
-
-import { carSlugParamSchema } from "../validators/car.validator.js";
+import {
+  sendPaginatedSuccess,
+  sendSuccess,
+} from "../utils/api-response.js";
+import {
+  carIdParamSchema,
+  carSlugParamSchema,
+  createCarSchema,
+  publicCarsQuerySchema,
+  updateCarSchema,
+} from "../validators/car.validator.js";
 
 export const getCars = async (
-  _request: Request,
+  request: Request,
   response: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
-    const cars =
-      await getPublicCars();
+    const query =
+      publicCarsQuerySchema.parse(request.query);
 
-    sendSuccess(
+    const result = await getPublicCars(query);
+
+    sendPaginatedSuccess(
       response,
       200,
-      cars,
+      result.cars,
+      result.pagination,
       "Cars retrieved successfully.",
     );
-  } catch (error) {
+  } catch (error: unknown) {
     next(error);
   }
 };
@@ -37,15 +50,12 @@ export const getCar = async (
   request: Request,
   response: Response,
   next: NextFunction,
-) => {
+): Promise<void> => {
   try {
     const { slug } =
-      carSlugParamSchema.parse(
-        request.params,
-      );
+      carSlugParamSchema.parse(request.params);
 
-    const car =
-      await getPublicCar(slug);
+    const car = await getPublicCar(slug);
 
     sendSuccess(
       response,
@@ -53,7 +63,85 @@ export const getCar = async (
       { car },
       "Car retrieved successfully.",
     );
-  } catch (error) {
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const createAdminCar = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (
+      !request.user ||
+      request.user.accountType !== "admin"
+    ) {
+      throw new AppError({
+        statusCode: 401,
+        code: "AUTHENTICATION_REQUIRED",
+        message:
+          "Administrator authentication is required.",
+      });
+    }
+
+    const input =
+      createCarSchema.parse(request.body);
+
+    const car = await createCarForAdmin(
+      input,
+      request.user,
+    );
+
+    sendSuccess(
+      response,
+      201,
+      { car },
+      "Car listing created successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const updateAdminCar = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    if (
+      !request.user ||
+      request.user.accountType !== "admin"
+    ) {
+      throw new AppError({
+        statusCode: 401,
+        code: "AUTHENTICATION_REQUIRED",
+        message:
+          "Administrator authentication is required.",
+      });
+    }
+
+    const { id } =
+      carIdParamSchema.parse(request.params);
+
+    const input =
+      updateCarSchema.parse(request.body);
+
+    const car = await updateCarForAdmin(
+      id,
+      input,
+      request.user,
+    );
+
+    sendSuccess(
+      response,
+      200,
+      { car },
+      "Car listing updated successfully.",
+    );
+  } catch (error: unknown) {
     next(error);
   }
 };
