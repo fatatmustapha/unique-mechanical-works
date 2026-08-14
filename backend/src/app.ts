@@ -12,7 +12,7 @@ import customerRouter from "./routes/customer.routes.js";
 import branchRouter from "./routes/branch.routes.js";
 import healthRouter from "./routes/health.routes.js";
 import serviceRouter from "./routes/service.routes.js";
-
+import carRouter from "./routes/car.routes.js";
 
 const app: Express = express();
 
@@ -46,6 +46,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/customers", customerRouter);
 app.use("/api/branches", branchRouter);
 app.use("/api/services", serviceRouter);
+app.use("/api/cars", carRouter);
 app.use("/api/health", healthRouter);
 
 // These must remain after all valid routes.

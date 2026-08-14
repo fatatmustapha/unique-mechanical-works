@@ -22,11 +22,10 @@ import {
 
 import {
   branchServiceParamsSchema,
+  branchServiceServiceIdParamSchema,
   createBranchServiceSchema,
-  serviceIdParamSchema as branchServiceServiceIdParamSchema,
   updateBranchServiceSchema,
 } from "../validators/branch-service.validator.js";
-
 import {
   createServiceSchema,
   serviceIdParamSchema,
@@ -146,6 +145,124 @@ export const patchServiceStatus = async (
       input.is_active
         ? "Service activated successfully."
         : "Service deactivated successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const getServiceBranches = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { id } =
+      branchServiceServiceIdParamSchema.parse(
+        request.params,
+      );
+
+    const branches = await getBranchesForService(id);
+
+    sendSuccess(
+      response,
+      200,
+      branches,
+      "Service branches retrieved successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const createServiceBranch = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { id } =
+      branchServiceServiceIdParamSchema.parse(
+        request.params,
+      );
+
+    const input =
+      createBranchServiceSchema.parse(
+        request.body,
+      );
+
+    const branchService =
+      await assignServiceToBranch(
+        id,
+        input,
+      );
+
+    sendSuccess(
+      response,
+      201,
+      { branchService },
+      "Service assigned to branch successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const updateServiceBranch = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { id, branchId } =
+      branchServiceParamsSchema.parse(
+        request.params,
+      );
+
+    const input =
+      updateBranchServiceSchema.parse(
+        request.body,
+      );
+
+    const branchService =
+      await updateServiceForBranch(
+        id,
+        branchId,
+        input,
+      );
+
+    sendSuccess(
+      response,
+      200,
+      { branchService },
+      "Branch-specific service settings updated successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const deleteServiceBranch = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const { id, branchId } =
+      branchServiceParamsSchema.parse(
+        request.params,
+      );
+
+    await removeServiceFromBranch(
+      id,
+      branchId,
+    );
+
+    sendSuccess(
+      response,
+      200,
+      {},
+      "Service removed from branch successfully.",
     );
   } catch (error: unknown) {
     next(error);

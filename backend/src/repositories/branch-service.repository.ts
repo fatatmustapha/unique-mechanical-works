@@ -14,8 +14,8 @@ interface BranchServiceRow extends RowDataPacket {
   branch_id: number;
   branch_name: string;
   service_id: number;
-  price: number | null;
-  estimated_minutes: number | null;
+  estimated_price_min: number | null;
+  estimated_price_max: number | null;
   is_available: number;
   created_at: Date;
   updated_at: Date;
@@ -30,8 +30,8 @@ export interface BranchService {
   branch_id: number;
   branch_name: string;
   service_id: number;
-  price: number | null;
-  estimated_minutes: number | null;
+  estimated_price_min: number | null;
+  estimated_price_max: number | null;
   is_available: boolean;
   created_at: Date;
   updated_at: Date;
@@ -39,19 +39,17 @@ export interface BranchService {
 
 const mapBranchService = (
   row: BranchServiceRow,
-): BranchService => {
-  return {
-    branch_service_id: row.branch_service_id,
-    branch_id: row.branch_id,
-    branch_name: row.branch_name,
-    service_id: row.service_id,
-    price: row.price,
-    estimated_minutes: row.estimated_minutes,
-    is_available: row.is_available === 1,
-    created_at: row.created_at,
-    updated_at: row.updated_at,
-  };
-};
+): BranchService => ({
+  branch_service_id: row.branch_service_id,
+  branch_id: row.branch_id,
+  branch_name: row.branch_name,
+  service_id: row.service_id,
+  estimated_price_min: row.estimated_price_min,
+  estimated_price_max: row.estimated_price_max,
+  is_available: row.is_available === 1,
+  created_at: row.created_at,
+  updated_at: row.updated_at,
+});
 
 export const findBranchServicesByServiceId = async (
   serviceId: number,
@@ -63,8 +61,8 @@ export const findBranchServicesByServiceId = async (
         bs.branch_id,
         b.name AS branch_name,
         bs.service_id,
-        bs.price,
-        bs.estimated_minutes,
+        bs.estimated_price_min,
+        bs.estimated_price_max,
         bs.is_available,
         bs.created_at,
         bs.updated_at
@@ -91,8 +89,8 @@ export const findBranchService = async (
         bs.branch_id,
         b.name AS branch_name,
         bs.service_id,
-        bs.price,
-        bs.estimated_minutes,
+        bs.estimated_price_min,
+        bs.estimated_price_max,
         bs.is_available,
         bs.created_at,
         bs.updated_at
@@ -139,8 +137,8 @@ export const createBranchService = async (
       INSERT INTO branch_services (
         branch_id,
         service_id,
-        price,
-        estimated_minutes,
+        estimated_price_min,
+        estimated_price_max,
         is_available
       )
       VALUES (?, ?, ?, ?, ?)
@@ -148,8 +146,8 @@ export const createBranchService = async (
     [
       input.branch_id,
       serviceId,
-      input.price ?? null,
-      input.estimated_minutes ?? null,
+      input.estimated_price_min ?? null,
+      input.estimated_price_max ?? null,
       input.is_available,
     ],
   );
@@ -176,14 +174,14 @@ export const updateBranchService = async (
   const updates: string[] = [];
   const values: Array<number | boolean | null> = [];
 
-  if (input.price !== undefined) {
-    updates.push("price = ?");
-    values.push(input.price);
+  if (input.estimated_price_min !== undefined) {
+    updates.push("estimated_price_min = ?");
+    values.push(input.estimated_price_min);
   }
 
-  if (input.estimated_minutes !== undefined) {
-    updates.push("estimated_minutes = ?");
-    values.push(input.estimated_minutes);
+  if (input.estimated_price_max !== undefined) {
+    updates.push("estimated_price_max = ?");
+    values.push(input.estimated_price_max);
   }
 
   if (input.is_available !== undefined) {
