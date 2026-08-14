@@ -11,6 +11,8 @@ import authRouter from "./routes/auth.routes.js";
 import customerRouter from "./routes/customer.routes.js";
 import branchRouter from "./routes/branch.routes.js";
 import healthRouter from "./routes/health.routes.js";
+import serviceRouter from "./routes/service.routes.js";
+
 
 const app: Express = express();
 
@@ -43,6 +45,7 @@ if (env.NODE_ENV === "development") {
 app.use("/api/auth", authRouter);
 app.use("/api/customers", customerRouter);
 app.use("/api/branches", branchRouter);
+app.use("/api/services", serviceRouter);
 app.use("/api/health", healthRouter);
 
 // These must remain after all valid routes.
