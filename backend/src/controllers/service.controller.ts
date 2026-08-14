@@ -12,6 +12,21 @@ import {
   updateServiceForAdmin,
 } from "../services/service.service.js";
 import { sendSuccess } from "../utils/api-response.js";
+
+import {
+  assignServiceToBranch,
+  getBranchesForService,
+  removeServiceFromBranch,
+  updateServiceForBranch,
+} from "../services/branch-service.service.js";
+
+import {
+  branchServiceParamsSchema,
+  createBranchServiceSchema,
+  serviceIdParamSchema as branchServiceServiceIdParamSchema,
+  updateBranchServiceSchema,
+} from "../validators/branch-service.validator.js";
+
 import {
   createServiceSchema,
   serviceIdParamSchema,
