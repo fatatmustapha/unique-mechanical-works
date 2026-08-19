@@ -645,3 +645,74 @@ export const updateCar = async (
     values,
   );
 };
+export const updateCarPublicationStatus = async (
+  carId: number,
+  publicationStatus: "draft" | "published" | "archived",
+): Promise<void> => {
+  if (publicationStatus === "published") {
+    await databasePool.execute<ResultSetHeader>(
+      `
+        UPDATE cars
+        SET
+          publication_status = ?,
+          published_at = CURRENT_TIMESTAMP
+        WHERE car_id = ?
+      `,
+      [publicationStatus, carId],
+    );
+
+    return;
+  }
+
+  await databasePool.execute<ResultSetHeader>(
+    `
+      UPDATE cars
+      SET publication_status = ?
+      WHERE car_id = ?
+    `,
+    [publicationStatus, carId],
+  );
+};
+
+export const updateCarSaleStatus = async (
+  carId: number,
+  saleStatus: "available" | "reserved" | "sold",
+): Promise<void> => {
+  await databasePool.execute<ResultSetHeader>(
+    `
+      UPDATE cars
+      SET sale_status = ?
+      WHERE car_id = ?
+    `,
+    [saleStatus, carId],
+  );
+};
+
+export const updateCarFeaturedStatus = async (
+  carId: number,
+  isFeatured: boolean,
+): Promise<void> => {
+  await databasePool.execute<ResultSetHeader>(
+    `
+      UPDATE cars
+      SET is_featured = ?
+      WHERE car_id = ?
+    `,
+    [isFeatured, carId],
+  );
+};
+
+export const permanentlyDeleteCar = async (
+  carId: number,
+): Promise<boolean> => {
+  const [result] =
+    await databasePool.execute<ResultSetHeader>(
+      `
+        DELETE FROM cars
+        WHERE car_id = ?
+      `,
+      [carId],
+    );
+
+  return result.affectedRows > 0;
+};

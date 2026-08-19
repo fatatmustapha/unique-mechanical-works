@@ -3,6 +3,7 @@ import cors from "cors";
 import express, { type Express } from "express";
 import helmet from "helmet";
 import morgan from "morgan";
+import path from "node:path";
 
 import { env } from "./config/env.js";
 import { errorMiddleware } from "./middleware/error.middleware.js";
@@ -12,7 +13,13 @@ import customerRouter from "./routes/customer.routes.js";
 import branchRouter from "./routes/branch.routes.js";
 import healthRouter from "./routes/health.routes.js";
 import serviceRouter from "./routes/service.routes.js";
+import adminCarRouter from "./routes/admin-car.routes.js";
 import carRouter from "./routes/car.routes.js";
+import carImageRouter from "./routes/car-image.routes.js";
+import carSaleSubmissionRouter from "./routes/car-sale-submission.routes.js";
+import adminCarSaleSubmissionRouter from "./routes/admin-car-sale-submission.routes.js";
+import appointmentRouter from "./routes/appointment.routes.js";
+import adminAppointmentRouter from "./routes/admin-appointment.routes.js";
 
 const app: Express = express();
 
@@ -37,6 +44,8 @@ app.use(
 
 app.use(cookieParser());
 
+app.use("/uploads", express.static(path.resolve(process.cwd(), "uploads")));
+
 if (env.NODE_ENV === "development") {
   app.use(morgan("dev"));
 }
@@ -47,7 +56,13 @@ app.use("/api/customers", customerRouter);
 app.use("/api/branches", branchRouter);
 app.use("/api/services", serviceRouter);
 app.use("/api/cars", carRouter);
+app.use("/api/admin/cars", adminCarRouter);
+app.use("/api/cars/:id/images", carImageRouter);
 app.use("/api/health", healthRouter);
+app.use("/api/car-sale-submissions", carSaleSubmissionRouter);
+app.use("/api/admin/car-sale-submissions", adminCarSaleSubmissionRouter);
+app.use("/api/appointments", appointmentRouter);
+app.use("/api/admin/appointments", adminAppointmentRouter);
 
 // These must remain after all valid routes.
 app.use(notFoundMiddleware);

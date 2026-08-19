@@ -8,7 +8,6 @@ import {
 const carRouter = Router();
 
 carRouter.get("/", getCars);
-
 carRouter.get("/:slug", getCar);
 
 export default carRouter;
