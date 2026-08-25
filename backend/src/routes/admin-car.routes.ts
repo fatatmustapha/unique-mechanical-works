@@ -1,14 +1,12 @@
 import { Router } from "express";
 
 import {
-  archiveCarController,
   createAdminCar,
   deleteCarController,
-  markCarAvailableController,
-  markCarSoldController,
-  publishCarController,
-  toggleFeaturedCarController,
   updateAdminCar,
+  updateCarFeaturedController,
+  updateCarPublicationController,
+  updateCarStatusController,
 } from "../controllers/car.controller.js";
 import {
   authenticate,
@@ -32,38 +30,24 @@ adminCarRouter.put(
 );
 
 adminCarRouter.patch(
-  "/:id/publish",
+  "/:id/status",
   authenticate,
   requireAdmin,
-  publishCarController,
+  updateCarStatusController,
 );
 
 adminCarRouter.patch(
-  "/:id/archive",
+  "/:id/publication",
   authenticate,
   requireAdmin,
-  archiveCarController,
+  updateCarPublicationController,
 );
 
 adminCarRouter.patch(
   "/:id/featured",
   authenticate,
   requireAdmin,
-  toggleFeaturedCarController,
-);
-
-adminCarRouter.patch(
-  "/:id/sold",
-  authenticate,
-  requireAdmin,
-  markCarSoldController,
-);
-
-adminCarRouter.patch(
-  "/:id/available",
-  authenticate,
-  requireAdmin,
-  markCarAvailableController,
+  updateCarFeaturedController,
 );
 
 adminCarRouter.delete(

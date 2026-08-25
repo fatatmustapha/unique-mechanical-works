@@ -20,6 +20,12 @@ import carSaleSubmissionRouter from "./routes/car-sale-submission.routes.js";
 import adminCarSaleSubmissionRouter from "./routes/admin-car-sale-submission.routes.js";
 import appointmentRouter from "./routes/appointment.routes.js";
 import adminAppointmentRouter from "./routes/admin-appointment.routes.js";
+import invoiceRouter from "./routes/invoice.routes.js";
+import adminInvoiceRouter from "./routes/admin-invoice.routes.js";
+import favoriteRouter from "./routes/favorite.routes.js";
+import adminDashboardRouter from "./routes/admin-dashboard.routes.js";
+import testimonialRouter from "./routes/testimonial.routes.js";
+import adminTestimonialRouter from "./routes/admin-testimonial.routes.js";
 
 const app: Express = express();
 
@@ -63,6 +69,12 @@ app.use("/api/car-sale-submissions", carSaleSubmissionRouter);
 app.use("/api/admin/car-sale-submissions", adminCarSaleSubmissionRouter);
 app.use("/api/appointments", appointmentRouter);
 app.use("/api/admin/appointments", adminAppointmentRouter);
+app.use("/api/invoices", invoiceRouter);
+app.use("/api/admin/invoices", adminInvoiceRouter);
+app.use("/api/favorites", favoriteRouter);
+app.use("/api/admin/dashboard", adminDashboardRouter);
+app.use("/api/testimonials", testimonialRouter);
+app.use("/api/admin/testimonials", adminTestimonialRouter);
 
 // These must remain after all valid routes.
 app.use(notFoundMiddleware);

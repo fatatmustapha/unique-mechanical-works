@@ -37,12 +37,19 @@ const ensureAdminUser = (request: Request) => {
     throw new AppError({
       statusCode: 401,
       code: "AUTHENTICATION_REQUIRED",
-      message: "Administrator authentication is required.",
+      message:
+        "Administrator authentication is required.",
     });
   }
 
   return request.user;
 };
+
+/*
+|--------------------------------------------------------------------------
+| PUBLIC CAR CONTROLLERS
+|--------------------------------------------------------------------------
+*/
 
 export const getCars = async (
   request: Request,
@@ -53,7 +60,8 @@ export const getCars = async (
     const query =
       publicCarsQuerySchema.parse(request.query);
 
-    const result = await getPublicCars(query);
+    const result =
+      await getPublicCars(query);
 
     sendPaginatedSuccess(
       response,
@@ -74,9 +82,12 @@ export const getCar = async (
 ): Promise<void> => {
   try {
     const { slug } =
-      carSlugParamSchema.parse(request.params);
+      carSlugParamSchema.parse(
+        request.params,
+      );
 
-    const car = await getPublicCar(slug);
+    const car =
+      await getPublicCar(slug);
 
     sendSuccess(
       response,
@@ -89,21 +100,31 @@ export const getCar = async (
   }
 };
 
+/*
+|--------------------------------------------------------------------------
+| ADMIN CREATE CAR
+|--------------------------------------------------------------------------
+*/
+
 export const createAdminCar = async (
   request: Request,
   response: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const admin = ensureAdminUser(request);
+    const admin =
+      ensureAdminUser(request);
 
     const input =
-      createCarSchema.parse(request.body);
+      createCarSchema.parse(
+        request.body,
+      );
 
-    const car = await createCarForAdmin(
-      input,
-      admin,
-    );
+    const car =
+      await createCarForAdmin(
+        input,
+        admin,
+      );
 
     sendSuccess(
       response,
@@ -116,25 +137,37 @@ export const createAdminCar = async (
   }
 };
 
+/*
+|--------------------------------------------------------------------------
+| ADMIN UPDATE CAR
+|--------------------------------------------------------------------------
+*/
+
 export const updateAdminCar = async (
   request: Request,
   response: Response,
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const admin = ensureAdminUser(request);
+    const admin =
+      ensureAdminUser(request);
 
     const { id } =
-      carIdParamSchema.parse(request.params);
+      carIdParamSchema.parse(
+        request.params,
+      );
 
     const input =
-      updateCarSchema.parse(request.body);
+      updateCarSchema.parse(
+        request.body,
+      );
 
-    const car = await updateCarForAdmin(
-      id,
-      input,
-      admin,
-    );
+    const car =
+      await updateCarForAdmin(
+        id,
+        input,
+        admin,
+      );
 
     sendSuccess(
       response,
@@ -147,134 +180,204 @@ export const updateAdminCar = async (
   }
 };
 
-export const publishCarController = async (
-  request: Request,
-  response: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const admin = ensureAdminUser(request);
+/*
+|--------------------------------------------------------------------------
+| ADMIN SALE STATUS
+|--------------------------------------------------------------------------
+|
+| PATCH /api/admin/cars/:id/status
+|
+| Body:
+| {
+|   "status": "sold"
+| }
+|
+| OR
+|
+| {
+|   "status": "available"
+| }
+|
+*/
 
-    const { id } =
-      carIdParamSchema.parse(request.params);
+export const updateCarStatusController =
+  async (
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const admin =
+        ensureAdminUser(request);
 
-    const car = await publishCar(id, admin);
+      const { id } =
+        carIdParamSchema.parse(
+          request.params,
+        );
 
-    sendSuccess(
-      response,
-      200,
-      { car },
-      "Car published successfully.",
-    );
-  } catch (error: unknown) {
-    next(error);
-  }
-};
+      const { status } =
+        request.body as {
+          status?: string;
+        };
 
-export const archiveCarController = async (
-  request: Request,
-  response: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const admin = ensureAdminUser(request);
+      if (
+        status !== "sold" &&
+        status !== "available"
+      ) {
+        throw new AppError({
+          statusCode: 400,
+          code:
+            "INVALID_CAR_STATUS",
+          message:
+            "Status must be either 'sold' or 'available'.",
+        });
+      }
 
-    const { id } =
-      carIdParamSchema.parse(request.params);
+      const car =
+        status === "sold"
+          ? await markCarSold(
+              id,
+              admin,
+            )
+          : await markCarAvailable(
+              id,
+              admin,
+            );
 
-    const car = await archiveCar(id, admin);
+      sendSuccess(
+        response,
+        200,
+        { car },
+        `Car marked as ${status} successfully.`,
+      );
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
 
-    sendSuccess(
-      response,
-      200,
-      { car },
-      "Car archived successfully.",
-    );
-  } catch (error: unknown) {
-    next(error);
-  }
-};
+/*
+|--------------------------------------------------------------------------
+| ADMIN PUBLICATION STATUS
+|--------------------------------------------------------------------------
+|
+| PATCH /api/admin/cars/:id/publication
+|
+| Body:
+| {
+|   "status": "published"
+| }
+|
+| OR
+|
+| {
+|   "status": "archived"
+| }
+|
+*/
 
-export const toggleFeaturedCarController = async (
-  request: Request,
-  response: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const admin = ensureAdminUser(request);
+export const updateCarPublicationController =
+  async (
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const admin =
+        ensureAdminUser(request);
 
-    const { id } =
-      carIdParamSchema.parse(request.params);
+      const { id } =
+        carIdParamSchema.parse(
+          request.params,
+        );
 
-    const car = await toggleFeaturedCar(
-      id,
-      admin,
-    );
+      const { status } =
+        request.body as {
+          status?: string;
+        };
 
-    sendSuccess(
-      response,
-      200,
-      { car },
-      "Car featured status updated successfully.",
-    );
-  } catch (error: unknown) {
-    next(error);
-  }
-};
+      if (
+        status !== "published" &&
+        status !== "archived"
+      ) {
+        throw new AppError({
+          statusCode: 400,
+          code:
+            "INVALID_PUBLICATION_STATUS",
+          message:
+            "Publication status must be either 'published' or 'archived'.",
+        });
+      }
 
-export const markCarSoldController = async (
-  request: Request,
-  response: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const admin = ensureAdminUser(request);
+      const car =
+        status === "published"
+          ? await publishCar(
+              id,
+              admin,
+            )
+          : await archiveCar(
+              id,
+              admin,
+            );
 
-    const { id } =
-      carIdParamSchema.parse(request.params);
+      sendSuccess(
+        response,
+        200,
+        { car },
+        `Car ${status} successfully.`,
+      );
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
 
-    const car = await markCarSold(
-      id,
-      admin,
-    );
+/*
+|--------------------------------------------------------------------------
+| ADMIN FEATURED STATUS
+|--------------------------------------------------------------------------
+|
+| PATCH /api/admin/cars/:id/featured
+|
+| This currently uses the existing toggleFeaturedCar service.
+|
+*/
 
-    sendSuccess(
-      response,
-      200,
-      { car },
-      "Car marked as sold successfully.",
-    );
-  } catch (error: unknown) {
-    next(error);
-  }
-};
+export const updateCarFeaturedController =
+  async (
+    request: Request,
+    response: Response,
+    next: NextFunction,
+  ): Promise<void> => {
+    try {
+      const admin =
+        ensureAdminUser(request);
 
-export const markCarAvailableController = async (
-  request: Request,
-  response: Response,
-  next: NextFunction,
-): Promise<void> => {
-  try {
-    const admin = ensureAdminUser(request);
+      const { id } =
+        carIdParamSchema.parse(
+          request.params,
+        );
 
-    const { id } =
-      carIdParamSchema.parse(request.params);
+      const car =
+        await toggleFeaturedCar(
+          id,
+          admin,
+        );
 
-    const car = await markCarAvailable(
-      id,
-      admin,
-    );
+      sendSuccess(
+        response,
+        200,
+        { car },
+        "Car featured status updated successfully.",
+      );
+    } catch (error: unknown) {
+      next(error);
+    }
+  };
 
-    sendSuccess(
-      response,
-      200,
-      { car },
-      "Car marked as available successfully.",
-    );
-  } catch (error: unknown) {
-    next(error);
-  }
-};
+/*
+|--------------------------------------------------------------------------
+| ADMIN DELETE CAR
+|--------------------------------------------------------------------------
+*/
 
 export const deleteCarController = async (
   request: Request,
@@ -282,12 +385,18 @@ export const deleteCarController = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const admin = ensureAdminUser(request);
+    const admin =
+      ensureAdminUser(request);
 
     const { id } =
-      carIdParamSchema.parse(request.params);
+      carIdParamSchema.parse(
+        request.params,
+      );
 
-    await deleteCar(id, admin);
+    await deleteCar(
+      id,
+      admin,
+    );
 
     sendSuccess(
       response,
