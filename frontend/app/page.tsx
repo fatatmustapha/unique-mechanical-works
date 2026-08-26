@@ -1,30 +1,21 @@
-import { getHealth } from "@/lib/api/health";
+import Hero from "@/components/home/Hero";
+import ServicesSection from "@/components/home/ServicesSection";
+import WhyVision from "@/components/home/WhyVision";
+import Footer from "@/components/layout/Footer";
+import Navbar from "@/components/layout/Navbar";
 
-export default async function Home() {
-  const health = await getHealth();
-
+export default function Home() {
   return (
-    <main className="flex min-h-screen items-center justify-center px-6">
-      <div className="text-center">
-        <p className="font-mono text-sm uppercase tracking-[0.2em] text-bronze">
-          Unique Mechanical Works
-        </p>
+    <>
+      <Navbar />
 
-        <h1 className="mt-4 font-heading text-4xl font-semibold tracking-tight text-prussian sm:text-5xl">
-          Backend Connection Test
-        </h1>
+      <main>
+        <Hero />
+        <WhyVision />
+        <ServicesSection />
+      </main>
 
-        <p className="mx-auto mt-4 max-w-lg text-base leading-7 text-slate">
-          API Status:{" "}
-          <span className="font-semibold text-prussian">
-            {health.data.status}
-          </span>
-        </p>
-
-        <p className="mt-2 font-mono text-sm text-slate">
-          Environment: {health.data.environment}
-        </p>
-      </div>
-    </main>
+      <Footer />
+    </>
   );
 }
