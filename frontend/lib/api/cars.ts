@@ -1,6 +1,8 @@
 import { apiRequest } from "@/lib/api/client";
 import { BACKEND_URL } from "@/lib/constants/env";
+
 import type {
+  Car,
   CarImage,
   CarImagesResponse,
   CarsResponse,
@@ -24,9 +26,15 @@ export type CarsQuery = {
     | "year_desc";
 };
 
+export type CarResponse = {
+  success: boolean;
+  data: Car;
+  message?: string;
+};
+
 export async function getCars(
   query: CarsQuery = {},
-) {
+): Promise<CarsResponse> {
   const params = new URLSearchParams();
 
   if (query.page !== undefined) {
@@ -73,9 +81,21 @@ export async function getCars(
   );
 }
 
+export async function getCarBySlug(
+  slug: string,
+): Promise<CarResponse> {
+  return apiRequest<CarResponse>(
+    `/cars/${encodeURIComponent(slug)}`,
+    {
+      method: "GET",
+      skipCredentials: true,
+    },
+  );
+}
+
 export async function getCarImages(
   carId: number,
-) {
+): Promise<CarImagesResponse> {
   return apiRequest<CarImagesResponse>(
     `/cars/${carId}/images`,
     {
@@ -87,7 +107,7 @@ export async function getCarImages(
 
 export function getCarImageUrl(
   image: CarImage | undefined,
-) {
+): string {
   if (!image) {
     return "/images/home/hero/hero.png";
   }
