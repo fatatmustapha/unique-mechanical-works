@@ -12,10 +12,24 @@ export default function WhyVision() {
     offset: ["start end", "center center"],
   });
 
-  // The car rises vertically from below and settles into position.
-  const carY = useTransform(scrollYProgress, [0, 1], [260, 0]);
+  // Desktop: car rises vertically from below.
+  const desktopCarY = useTransform(scrollYProgress, [0, 1], [260, 0]);
+
+  // Shared scale.
   const carScale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
-  const carOpacity = useTransform(
+
+  // Desktop opacity.
+  const desktopCarOpacity = useTransform(
+    scrollYProgress,
+    [0, 0.2, 0.65, 1],
+    [0, 0.45, 0.9, 1],
+  );
+
+  // Mobile / tablet:
+  // car drives horizontally from the left into the center.
+  const mobileCarX = useTransform(scrollYProgress, [0, 1], [-320, 0]);
+
+  const mobileCarOpacity = useTransform(
     scrollYProgress,
     [0, 0.2, 0.65, 1],
     [0, 0.45, 0.9, 1],
@@ -124,47 +138,52 @@ export default function WhyVision() {
           </div>
         </div>
 
-        {/* CENTER CAR — DESKTOP */}
-<motion.div
-  aria-hidden="true"
-  style={{
-    y: carY,
-    scale: carScale,
-    opacity: carOpacity,
-  }}
-  className="pointer-events-none absolute inset-y-0 left-1/2 z-20 hidden w-[480px] -translate-x-1/2 items-center justify-center lg:flex xl:w-[540px]"
->
-  <div className="relative aspect-[0.72] w-full">
-    <Image
-      src="/images/home/vision/top-view.png"
-      alt=""
-      fill
-      sizes="540px"
-      className="object-contain drop-shadow-[0_35px_40px_rgba(0,0,0,0.4)]"
-    />
-  </div>
-</motion.div>
-
-        {/* CENTER CAR — MOBILE / TABLET */}
+        {/* DESKTOP CAR */}
         <motion.div
           aria-hidden="true"
           style={{
-            y: carY,
+            y: desktopCarY,
             scale: carScale,
-            opacity: carOpacity,
+            opacity: desktopCarOpacity,
           }}
-          className="pointer-events-none absolute left-1/2 top-1/2 z-20 w-[155px] -translate-x-1/2 -translate-y-1/2 sm:w-[195px] lg:hidden"
+          className="pointer-events-none absolute inset-y-0 left-1/2 z-20 hidden w-[480px] -translate-x-1/2 items-center justify-center lg:flex xl:w-[540px]"
         >
           <div className="relative aspect-[0.72] w-full">
             <Image
               src="/images/home/vision/top-view.png"
               alt=""
               fill
-              sizes="195px"
-              className="object-contain drop-shadow-[0_25px_30px_rgba(0,0,0,0.35)]"
+              sizes="540px"
+              className="object-contain drop-shadow-[0_35px_40px_rgba(0,0,0,0.4)]"
             />
           </div>
         </motion.div>
+
+        {/* MOBILE / TABLET CAR */}
+        <div
+          aria-hidden="true"
+          className="pointer-events-none absolute left-1/2 top-1/2 z-20 -translate-x-1/2 -translate-y-1/2 lg:hidden"
+        >
+          <motion.div
+            style={{
+              x: mobileCarX,
+              scale: carScale,
+              opacity: mobileCarOpacity,
+            }}
+          >
+            <div className="w-[220px] rotate-90 sm:w-[270px]">
+              <div className="relative aspect-[0.72] w-full">
+                <Image
+                  src="/images/home/vision/top-view.png"
+                  alt=""
+                  fill
+                  sizes="270px"
+                  className="object-contain drop-shadow-[0_25px_30px_rgba(0,0,0,0.35)]"
+                />
+              </div>
+            </div>
+          </motion.div>
+        </div>
       </div>
     </section>
   );
