@@ -70,6 +70,24 @@ function EmailIcon() {
   );
 }
 
+function LockIcon() {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+      className="h-4 w-4"
+    >
+      <rect x="5" y="10" width="14" height="10" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
+  );
+}
+
 export default function Footer() {
   return (
     <footer className="bg-prussian text-white">
@@ -212,9 +230,21 @@ export default function Footer() {
             reserved.
           </p>
 
-          <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">
-            Kano · Abuja · Nigeria
-          </p>
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-white/35">
+              Kano · Abuja · Nigeria
+            </p>
+
+            {/* ADMIN ACCESS */}
+            <Link
+              href="/admin/login"
+              className="group inline-flex items-center gap-2 text-[11px] font-medium text-white/35 transition-colors duration-300 hover:text-bronze"
+              aria-label="Open administrator login"
+            >
+              <LockIcon />
+              <span>Admin Portal</span>
+            </Link>
+          </div>
         </div>
       </div>
     </footer>

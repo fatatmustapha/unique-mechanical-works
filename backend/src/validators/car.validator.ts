@@ -5,24 +5,45 @@ const nullableString = (max: number) =>
 
 const currentYear = new Date().getFullYear();
 
+/*
+|--------------------------------------------------------------------------
+| PARAMETER SCHEMAS
+|--------------------------------------------------------------------------
+*/
+
 export const carSlugParamSchema = z.object({
   slug: z
     .string()
     .trim()
     .min(1, "Car slug is required.")
-    .max(180, "Car slug must not exceed 180 characters."),
+    .max(
+      180,
+      "Car slug must not exceed 180 characters.",
+    ),
 });
 
 export const carIdParamSchema = z.object({
   id: z.coerce
     .number()
     .int()
-    .positive("Car ID must be a positive integer."),
+    .positive(
+      "Car ID must be a positive integer.",
+    ),
 });
+
+/*
+|--------------------------------------------------------------------------
+| PUBLIC CAR QUERY
+|--------------------------------------------------------------------------
+*/
 
 export const publicCarsQuerySchema = z
   .object({
-    page: z.coerce.number().int().positive().default(1),
+    page: z.coerce
+      .number()
+      .int()
+      .positive()
+      .default(1),
 
     limit: z.coerce
       .number()
@@ -31,15 +52,33 @@ export const publicCarsQuerySchema = z
       .max(100)
       .default(12),
 
-    search: z.string().trim().max(100).optional(),
+    search: z
+      .string()
+      .trim()
+      .max(100)
+      .optional(),
 
-    branch_id: z.coerce.number().int().positive().optional(),
+    branch_id: z.coerce
+      .number()
+      .int()
+      .positive()
+      .optional(),
 
-    make: z.string().trim().max(50).optional(),
+    make: z
+      .string()
+      .trim()
+      .max(50)
+      .optional(),
 
-    min_price: z.coerce.number().nonnegative().optional(),
+    min_price: z.coerce
+      .number()
+      .nonnegative()
+      .optional(),
 
-    max_price: z.coerce.number().nonnegative().optional(),
+    max_price: z.coerce
+      .number()
+      .nonnegative()
+      .optional(),
 
     min_year: z.coerce
       .number()
@@ -56,7 +95,11 @@ export const publicCarsQuerySchema = z
       .optional(),
 
     condition_type: z
-      .enum(["New", "Nigerian Used", "Foreign Used"])
+      .enum([
+        "New",
+        "Nigerian Used",
+        "Foreign Used",
+      ])
       .optional(),
 
     transmission: z
@@ -64,14 +107,25 @@ export const publicCarsQuerySchema = z
       .optional(),
 
     fuel_type: z
-      .enum(["Petrol", "Diesel", "Hybrid", "Electric"])
+      .enum([
+        "Petrol",
+        "Diesel",
+        "Hybrid",
+        "Electric",
+      ])
       .optional(),
 
-    body_type: z.string().trim().max(50).optional(),
+    body_type: z
+      .string()
+      .trim()
+      .max(50)
+      .optional(),
 
     featured: z
       .enum(["true", "false"])
-      .transform((value) => value === "true")
+      .transform(
+        (value) => value === "true",
+      )
       .optional(),
 
     sort: z
@@ -90,7 +144,8 @@ export const publicCarsQuerySchema = z
       data.max_price === undefined ||
       data.min_price <= data.max_price,
     {
-      message: "Minimum price must not exceed maximum price.",
+      message:
+        "Minimum price must not exceed maximum price.",
       path: ["max_price"],
     },
   )
@@ -100,16 +155,97 @@ export const publicCarsQuerySchema = z
       data.max_year === undefined ||
       data.min_year <= data.max_year,
     {
-      message: "Minimum year must not exceed maximum year.",
+      message:
+        "Minimum year must not exceed maximum year.",
       path: ["max_year"],
     },
   );
+
+/*
+|--------------------------------------------------------------------------
+| ADMIN CAR QUERY
+|--------------------------------------------------------------------------
+|
+| Unlike the public query, this allows administrators to retrieve draft,
+| published, archived, available, reserved and sold vehicles.
+|
+*/
+
+export const adminCarsQuerySchema = z.object({
+  page: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .default(20),
+
+  search: z
+    .string()
+    .trim()
+    .max(100)
+    .optional(),
+
+  branch_id: z.coerce
+    .number()
+    .int()
+    .positive()
+    .optional(),
+
+  publication_status: z
+    .enum([
+      "draft",
+      "published",
+      "archived",
+    ])
+    .optional(),
+
+  sale_status: z
+    .enum([
+      "available",
+      "reserved",
+      "sold",
+    ])
+    .optional(),
+
+  featured: z
+    .enum(["true", "false"])
+    .transform(
+      (value) => value === "true",
+    )
+    .optional(),
+
+  sort: z
+    .enum([
+      "latest",
+      "oldest",
+      "price_asc",
+      "price_desc",
+      "year_asc",
+      "year_desc",
+    ])
+    .default("latest"),
+});
+
+/*
+|--------------------------------------------------------------------------
+| CAR FIELDS
+|--------------------------------------------------------------------------
+*/
 
 const carFieldsSchema = z.object({
   reference_number: z
     .string()
     .trim()
-    .min(1, "Reference number is required.")
+    .min(
+      1,
+      "Reference number is required.",
+    )
     .max(40),
 
   slug: z
@@ -127,11 +263,21 @@ const carFieldsSchema = z.object({
   branch_id: z
     .number()
     .int()
-    .positive("Branch ID must be a positive integer."),
+    .positive(
+      "Branch ID must be a positive integer.",
+    ),
 
-  make: z.string().trim().min(1).max(50),
+  make: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50),
 
-  model: z.string().trim().min(1).max(50),
+  model: z
+    .string()
+    .trim()
+    .min(1)
+    .max(50),
 
   year: z
     .number()
@@ -141,45 +287,95 @@ const carFieldsSchema = z.object({
     .nullable()
     .optional(),
 
-  price: z.number().positive("Price must be greater than zero."),
+  price: z
+    .number()
+    .positive(
+      "Price must be greater than zero.",
+    ),
 
-  mileage: z.number().int().nonnegative().nullable().optional(),
+  mileage: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullable()
+    .optional(),
 
   condition_type: z
-    .enum(["New", "Nigerian Used", "Foreign Used"])
+    .enum([
+      "New",
+      "Nigerian Used",
+      "Foreign Used",
+    ])
     .nullable()
     .optional(),
 
   transmission: z
-    .enum(["Automatic", "Manual"])
+    .enum([
+      "Automatic",
+      "Manual",
+    ])
     .nullable()
     .optional(),
 
   fuel_type: z
-    .enum(["Petrol", "Diesel", "Hybrid", "Electric"])
+    .enum([
+      "Petrol",
+      "Diesel",
+      "Hybrid",
+      "Electric",
+    ])
     .nullable()
     .optional(),
 
-  description: z.string().trim().nullable().optional(),
+  description: z
+    .string()
+    .trim()
+    .nullable()
+    .optional(),
 
   color_exterior: nullableString(50),
+
   color_interior: nullableString(50),
+
   engine_size: nullableString(30),
 
-  horsepower: z.number().int().positive().nullable().optional(),
+  horsepower: z
+    .number()
+    .int()
+    .positive()
+    .nullable()
+    .optional(),
 
   body_type: nullableString(50),
 
-  num_doors: z.number().int().positive().max(20).nullable().optional(),
-
-  num_seats: z.number().int().positive().max(100).nullable().optional(),
-
-  drivetrain: z
-    .enum(["FWD", "RWD", "AWD", "4WD"])
+  num_doors: z
+    .number()
+    .int()
+    .positive()
+    .max(20)
     .nullable()
     .optional(),
 
-  registration_status: nullableString(100),
+  num_seats: z
+    .number()
+    .int()
+    .positive()
+    .max(100)
+    .nullable()
+    .optional(),
+
+  drivetrain: z
+    .enum([
+      "FWD",
+      "RWD",
+      "AWD",
+      "4WD",
+    ])
+    .nullable()
+    .optional(),
+
+  registration_status:
+    nullableString(100),
 
   num_previous_owners: z
     .number()
@@ -188,25 +384,58 @@ const carFieldsSchema = z.object({
     .nullable()
     .optional(),
 
-  import_status: nullableString(100),
+  import_status:
+    nullableString(100),
 
-  negotiable: z.boolean().optional().default(true),
+  negotiable: z
+    .boolean()
+    .optional()
+    .default(true),
 
-  features: z.array(z.string().trim().min(1)).nullable().optional(),
+  features: z
+    .array(
+      z.string().trim().min(1),
+    )
+    .nullable()
+    .optional(),
 
-  warranty_status: nullableString(150),
+  warranty_status:
+    nullableString(150),
 });
 
-export const createCarSchema = carFieldsSchema;
+/*
+|--------------------------------------------------------------------------
+| CREATE / UPDATE
+|--------------------------------------------------------------------------
+*/
 
-export const updateCarSchema = carFieldsSchema
-  .partial()
-  .refine((data) => Object.keys(data).length > 0, {
-    message: "At least one car field must be supplied.",
-  });
+export const createCarSchema =
+  carFieldsSchema;
+
+export const updateCarSchema =
+  carFieldsSchema
+    .partial()
+    .refine(
+      (data) =>
+        Object.keys(data).length > 0,
+      {
+        message:
+          "At least one car field must be supplied.",
+      },
+    );
+
+/*
+|--------------------------------------------------------------------------
+| TYPES
+|--------------------------------------------------------------------------
+*/
 
 export type PublicCarsQuery = z.infer<
   typeof publicCarsQuerySchema
+>;
+
+export type AdminCarsQuery = z.infer<
+  typeof adminCarsQuerySchema
 >;
 
 export type CreateCarInput = z.infer<

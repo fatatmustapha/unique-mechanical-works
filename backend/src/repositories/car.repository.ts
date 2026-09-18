@@ -4,7 +4,9 @@ import type {
 } from "mysql2";
 
 import { databasePool } from "../config/database.js";
+
 import type {
+  AdminCarsQuery,
   CreateCarInput,
   PublicCarsQuery,
   UpdateCarInput,
@@ -24,22 +26,39 @@ interface CarRow extends RowDataPacket {
   year: number | null;
   price: number;
   mileage: number | null;
+
   condition_type:
     | "New"
     | "Nigerian Used"
     | "Foreign Used"
     | null;
-  transmission: "Automatic" | "Manual" | null;
+
+  transmission:
+    | "Automatic"
+    | "Manual"
+    | null;
+
   fuel_type:
     | "Petrol"
     | "Diesel"
     | "Hybrid"
     | "Electric"
     | null;
+
   description: string | null;
-  sale_status: "available" | "reserved" | "sold";
-  publication_status: "draft" | "published" | "archived";
+
+  sale_status:
+    | "available"
+    | "reserved"
+    | "sold";
+
+  publication_status:
+    | "draft"
+    | "published"
+    | "archived";
+
   is_featured: number;
+
   color_exterior: string | null;
   color_interior: string | null;
   engine_size: string | null;
@@ -47,74 +66,174 @@ interface CarRow extends RowDataPacket {
   body_type: string | null;
   num_doors: number | null;
   num_seats: number | null;
-  drivetrain: "FWD" | "RWD" | "AWD" | "4WD" | null;
+
+  drivetrain:
+    | "FWD"
+    | "RWD"
+    | "AWD"
+    | "4WD"
+    | null;
+
   registration_status: string | null;
-  num_previous_owners: number | null;
+
+  num_previous_owners:
+    | number
+    | null;
+
   import_status: string | null;
+
   negotiable: number;
+
   features: string | null;
+
   warranty_status: string | null;
+
   views_count: number;
+
   published_at: Date | null;
+
   created_at: Date;
   updated_at: Date;
 }
 
-interface CarIdentityRow extends RowDataPacket {
+interface CarIdentityRow
+  extends RowDataPacket {
   car_id: number;
 }
 
-interface CarCountRow extends RowDataPacket {
+interface CarCountRow
+  extends RowDataPacket {
   total: number;
 }
 
 export interface Car {
   car_id: number;
+
   reference_number: string;
+
   slug: string;
+
   vin: string | null;
-  created_by_admin_id: number | null;
-  submission_id: number | null;
+
+  created_by_admin_id:
+    | number
+    | null;
+
+  submission_id:
+    | number
+    | null;
+
   branch_id: number;
+
   branch_name: string;
+
   make: string;
+
   model: string;
+
   year: number | null;
+
   price: number;
+
   mileage: number | null;
+
   condition_type:
     | "New"
     | "Nigerian Used"
     | "Foreign Used"
     | null;
-  transmission: "Automatic" | "Manual" | null;
+
+  transmission:
+    | "Automatic"
+    | "Manual"
+    | null;
+
   fuel_type:
     | "Petrol"
     | "Diesel"
     | "Hybrid"
     | "Electric"
     | null;
+
   description: string | null;
-  sale_status: "available" | "reserved" | "sold";
-  publication_status: "draft" | "published" | "archived";
+
+  sale_status:
+    | "available"
+    | "reserved"
+    | "sold";
+
+  publication_status:
+    | "draft"
+    | "published"
+    | "archived";
+
   is_featured: boolean;
-  color_exterior: string | null;
-  color_interior: string | null;
-  engine_size: string | null;
-  horsepower: number | null;
-  body_type: string | null;
-  num_doors: number | null;
-  num_seats: number | null;
-  drivetrain: "FWD" | "RWD" | "AWD" | "4WD" | null;
-  registration_status: string | null;
-  num_previous_owners: number | null;
-  import_status: string | null;
+
+  color_exterior:
+    | string
+    | null;
+
+  color_interior:
+    | string
+    | null;
+
+  engine_size:
+    | string
+    | null;
+
+  horsepower:
+    | number
+    | null;
+
+  body_type:
+    | string
+    | null;
+
+  num_doors:
+    | number
+    | null;
+
+  num_seats:
+    | number
+    | null;
+
+  drivetrain:
+    | "FWD"
+    | "RWD"
+    | "AWD"
+    | "4WD"
+    | null;
+
+  registration_status:
+    | string
+    | null;
+
+  num_previous_owners:
+    | number
+    | null;
+
+  import_status:
+    | string
+    | null;
+
   negotiable: boolean;
-  features: string[] | null;
-  warranty_status: string | null;
+
+  features:
+    | string[]
+    | null;
+
+  warranty_status:
+    | string
+    | null;
+
   views_count: number;
-  published_at: Date | null;
+
+  published_at:
+    | Date
+    | null;
+
   created_at: Date;
+
   updated_at: Date;
 }
 
@@ -123,16 +242,29 @@ export interface PublicCarsResult {
   total: number;
 }
 
-const mapCar = (row: CarRow): Car => {
-  let features: string[] | null = null;
+export interface AdminCarsResult {
+  cars: Car[];
+  total: number;
+}
+
+const mapCar = (
+  row: CarRow,
+): Car => {
+  let features:
+    | string[]
+    | null = null;
 
   if (row.features !== null) {
     try {
-      const parsed: unknown = JSON.parse(row.features);
+      const parsed: unknown =
+        JSON.parse(row.features);
 
       if (
         Array.isArray(parsed) &&
-        parsed.every((item) => typeof item === "string")
+        parsed.every(
+          (item) =>
+            typeof item === "string",
+        )
       ) {
         features = parsed;
       }
@@ -143,8 +275,13 @@ const mapCar = (row: CarRow): Car => {
 
   return {
     ...row,
-    is_featured: row.is_featured === 1,
-    negotiable: row.negotiable === 1,
+
+    is_featured:
+      row.is_featured === 1,
+
+    negotiable:
+      row.negotiable === 1,
+
     features,
   };
 };
@@ -194,525 +331,1247 @@ const carSelect = `
     ON b.branch_id = c.branch_id
 `;
 
-export const findPublishedCars = async (
-  query: PublicCarsQuery,
-): Promise<PublicCarsResult> => {
-  const conditions: string[] = [
-    "c.publication_status = 'published'",
-    "c.sale_status <> 'sold'",
-  ];
+/*
+|--------------------------------------------------------------------------
+| PUBLIC VEHICLE LIST
+|--------------------------------------------------------------------------
+*/
 
-  const values: Array<string | number | boolean> = [];
+export const findPublishedCars =
+  async (
+    query: PublicCarsQuery,
+  ): Promise<PublicCarsResult> => {
+    const conditions: string[] = [
+      "c.publication_status = 'published'",
+      "c.sale_status <> 'sold'",
+    ];
 
-  if (query.search !== undefined) {
-    conditions.push(
-      "(c.make LIKE ? OR c.model LIKE ? OR c.reference_number LIKE ?)",
-    );
+    const values: Array<
+      string | number | boolean
+    > = [];
 
-    const pattern = `%${query.search}%`;
+    if (
+      query.search !== undefined
+    ) {
+      conditions.push(
+        "(c.make LIKE ? OR c.model LIKE ? OR c.reference_number LIKE ?)",
+      );
 
-    values.push(pattern, pattern, pattern);
-  }
+      const pattern =
+        `%${query.search}%`;
 
-  if (query.branch_id !== undefined) {
-    conditions.push("c.branch_id = ?");
-    values.push(query.branch_id);
-  }
+      values.push(
+        pattern,
+        pattern,
+        pattern,
+      );
+    }
 
-  if (query.make !== undefined) {
-    conditions.push("c.make = ?");
-    values.push(query.make);
-  }
+    if (
+      query.branch_id !== undefined
+    ) {
+      conditions.push(
+        "c.branch_id = ?",
+      );
 
-  if (query.min_price !== undefined) {
-    conditions.push("c.price >= ?");
-    values.push(query.min_price);
-  }
+      values.push(
+        query.branch_id,
+      );
+    }
 
-  if (query.max_price !== undefined) {
-    conditions.push("c.price <= ?");
-    values.push(query.max_price);
-  }
+    if (
+      query.make !== undefined
+    ) {
+      conditions.push(
+        "c.make = ?",
+      );
 
-  if (query.min_year !== undefined) {
-    conditions.push("c.year >= ?");
-    values.push(query.min_year);
-  }
+      values.push(query.make);
+    }
 
-  if (query.max_year !== undefined) {
-    conditions.push("c.year <= ?");
-    values.push(query.max_year);
-  }
+    if (
+      query.min_price !==
+      undefined
+    ) {
+      conditions.push(
+        "c.price >= ?",
+      );
 
-  if (query.condition_type !== undefined) {
-    conditions.push("c.condition_type = ?");
-    values.push(query.condition_type);
-  }
+      values.push(
+        query.min_price,
+      );
+    }
 
-  if (query.transmission !== undefined) {
-    conditions.push("c.transmission = ?");
-    values.push(query.transmission);
-  }
+    if (
+      query.max_price !==
+      undefined
+    ) {
+      conditions.push(
+        "c.price <= ?",
+      );
 
-  if (query.fuel_type !== undefined) {
-    conditions.push("c.fuel_type = ?");
-    values.push(query.fuel_type);
-  }
+      values.push(
+        query.max_price,
+      );
+    }
 
-  if (query.body_type !== undefined) {
-    conditions.push("c.body_type = ?");
-    values.push(query.body_type);
-  }
+    if (
+      query.min_year !==
+      undefined
+    ) {
+      conditions.push(
+        "c.year >= ?",
+      );
 
-  if (query.featured !== undefined) {
-    conditions.push("c.is_featured = ?");
-    values.push(query.featured);
-  }
+      values.push(
+        query.min_year,
+      );
+    }
 
-  const orderBy = {
-    latest: "c.published_at DESC, c.created_at DESC",
-    price_asc: "c.price ASC",
-    price_desc: "c.price DESC",
-    year_asc: "c.year ASC",
-    year_desc: "c.year DESC",
-  }[query.sort];
+    if (
+      query.max_year !==
+      undefined
+    ) {
+      conditions.push(
+        "c.year <= ?",
+      );
 
-  const whereClause = `WHERE ${conditions.join(" AND ")}`;
+      values.push(
+        query.max_year,
+      );
+    }
 
-  const offset = (query.page - 1) * query.limit;
+    if (
+      query.condition_type !==
+      undefined
+    ) {
+      conditions.push(
+        "c.condition_type = ?",
+      );
 
-  const [rows] = await databasePool.execute<CarRow[]>(
-    `
-      ${carSelect}
-      ${whereClause}
-      ORDER BY ${orderBy}
-      LIMIT ?
-      OFFSET ?
-    `,
-    [...values, query.limit, offset],
-  );
+      values.push(
+        query.condition_type,
+      );
+    }
 
-  const [countRows] = await databasePool.execute<CarCountRow[]>(
-    `
-      SELECT COUNT(*) AS total
-      FROM cars c
-      ${whereClause}
-    `,
-    values,
-  );
+    if (
+      query.transmission !==
+      undefined
+    ) {
+      conditions.push(
+        "c.transmission = ?",
+      );
 
-  return {
-    cars: rows.map(mapCar),
-    total: countRows[0]?.total ?? 0,
-  };
-};
+      values.push(
+        query.transmission,
+      );
+    }
 
-export const findPublishedCarBySlug = async (
-  slug: string,
-): Promise<Car | null> => {
-  const [rows] = await databasePool.execute<CarRow[]>(
-    `
-      ${carSelect}
-      WHERE c.slug = ?
-        AND c.publication_status = 'published'
-      LIMIT 1
-    `,
-    [slug],
-  );
+    if (
+      query.fuel_type !==
+      undefined
+    ) {
+      conditions.push(
+        "c.fuel_type = ?",
+      );
 
-  return rows[0] ? mapCar(rows[0]) : null;
-};
+      values.push(
+        query.fuel_type,
+      );
+    }
 
-export const findCarById = async (
-  carId: number,
-): Promise<Car | null> => {
-  const [rows] = await databasePool.execute<CarRow[]>(
-    `
-      ${carSelect}
-      WHERE c.car_id = ?
-      LIMIT 1
-    `,
-    [carId],
-  );
+    if (
+      query.body_type !==
+      undefined
+    ) {
+      conditions.push(
+        "c.body_type = ?",
+      );
 
-  return rows[0] ? mapCar(rows[0]) : null;
-};
+      values.push(
+        query.body_type,
+      );
+    }
 
-export const findCarByReferenceNumber = async (
-  referenceNumber: string,
-  excludedId?: number,
-): Promise<number | null> => {
-  const sql =
-    excludedId === undefined
-      ? `
-          SELECT car_id
-          FROM cars
-          WHERE reference_number = ?
-          LIMIT 1
+    if (
+      query.featured !==
+      undefined
+    ) {
+      conditions.push(
+        "c.is_featured = ?",
+      );
+
+      values.push(
+        query.featured,
+      );
+    }
+
+    const orderBy = {
+      latest:
+        "c.published_at DESC, c.created_at DESC",
+
+      price_asc:
+        "c.price ASC",
+
+      price_desc:
+        "c.price DESC",
+
+      year_asc:
+        "c.year ASC",
+
+      year_desc:
+        "c.year DESC",
+    }[query.sort];
+
+    const whereClause =
+      `WHERE ${conditions.join(
+        " AND ",
+      )}`;
+
+    const offset =
+      (query.page - 1) *
+      query.limit;
+
+    const [rows] =
+      await databasePool.execute<
+        CarRow[]
+      >(
         `
-      : `
-          SELECT car_id
-          FROM cars
-          WHERE reference_number = ?
-            AND car_id <> ?
-          LIMIT 1
-        `;
+          ${carSelect}
+          ${whereClause}
+          ORDER BY ${orderBy}
+          LIMIT ?
+          OFFSET ?
+        `,
+        [
+          ...values,
+          query.limit,
+          offset,
+        ],
+      );
 
-  const params =
-    excludedId === undefined
-      ? [referenceNumber]
-      : [referenceNumber, excludedId];
-
-  const [rows] =
-    await databasePool.execute<CarIdentityRow[]>(
-      sql,
-      params,
-    );
-
-  return rows[0]?.car_id ?? null;
-};
-
-export const findCarBySlug = async (
-  slug: string,
-  excludedId?: number,
-): Promise<number | null> => {
-  const sql =
-    excludedId === undefined
-      ? `
-          SELECT car_id
-          FROM cars
-          WHERE slug = ?
-          LIMIT 1
+    const [countRows] =
+      await databasePool.execute<
+        CarCountRow[]
+      >(
         `
-      : `
-          SELECT car_id
-          FROM cars
-          WHERE slug = ?
-            AND car_id <> ?
-          LIMIT 1
-        `;
+          SELECT
+            COUNT(*) AS total
+          FROM cars c
+          ${whereClause}
+        `,
+        values,
+      );
 
-  const params =
-    excludedId === undefined
-      ? [slug]
-      : [slug, excludedId];
+    return {
+      cars:
+        rows.map(mapCar),
 
-  const [rows] =
-    await databasePool.execute<CarIdentityRow[]>(
-      sql,
-      params,
-    );
-
-  return rows[0]?.car_id ?? null;
-};
-
-export const findCarByVin = async (
-  vin: string,
-  excludedId?: number,
-): Promise<number | null> => {
-  const sql =
-    excludedId === undefined
-      ? `
-          SELECT car_id
-          FROM cars
-          WHERE vin = ?
-          LIMIT 1
-        `
-      : `
-          SELECT car_id
-          FROM cars
-          WHERE vin = ?
-            AND car_id <> ?
-          LIMIT 1
-        `;
-
-  const params =
-    excludedId === undefined
-      ? [vin]
-      : [vin, excludedId];
-
-  const [rows] =
-    await databasePool.execute<CarIdentityRow[]>(
-      sql,
-      params,
-    );
-
-  return rows[0]?.car_id ?? null;
-};
-
-export const createCar = async (
-  input: CreateCarInput,
-  adminId: number,
-): Promise<Car> => {
-  const [result] = await databasePool.execute<ResultSetHeader>(
-    `
-      INSERT INTO cars (
-        reference_number,
-        slug,
-        vin,
-        created_by_admin_id,
-        branch_id,
-        make,
-        model,
-        year,
-        price,
-        mileage,
-        condition_type,
-        transmission,
-        fuel_type,
-        description,
-        color_exterior,
-        color_interior,
-        engine_size,
-        horsepower,
-        body_type,
-        num_doors,
-        num_seats,
-        drivetrain,
-        registration_status,
-        num_previous_owners,
-        import_status,
-        negotiable,
-        features,
-        warranty_status
-      )
-      VALUES (
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
-        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
-      )
-    `,
-    [
-      input.reference_number,
-      input.slug,
-      input.vin ?? null,
-      adminId,
-      input.branch_id,
-      input.make,
-      input.model,
-      input.year ?? null,
-      input.price,
-      input.mileage ?? null,
-      input.condition_type ?? null,
-      input.transmission ?? null,
-      input.fuel_type ?? null,
-      input.description ?? null,
-      input.color_exterior ?? null,
-      input.color_interior ?? null,
-      input.engine_size ?? null,
-      input.horsepower ?? null,
-      input.body_type ?? null,
-      input.num_doors ?? null,
-      input.num_seats ?? null,
-      input.drivetrain ?? null,
-      input.registration_status ?? null,
-      input.num_previous_owners ?? null,
-      input.import_status ?? null,
-      input.negotiable,
-      input.features === undefined ||
-      input.features === null
-        ? null
-        : JSON.stringify(input.features),
-      input.warranty_status ?? null,
-    ],
-  );
-
-  const car = await findCarById(result.insertId);
-
-  if (!car) {
-    throw new Error(
-      "The newly created car could not be retrieved.",
-    );
-  }
-
-  return car;
-};
-
-export const updateCar = async (
-  carId: number,
-  input: UpdateCarInput,
-): Promise<void> => {
-  const updates: string[] = [];
-  const values: Array<string | number | boolean | null> = [];
-
-  const add = (
-    column: string,
-    value: string | number | boolean | null,
-  ): void => {
-    updates.push(`${column} = ?`);
-    values.push(value);
+      total:
+        countRows[0]?.total ??
+        0,
+    };
   };
 
-  if (input.reference_number !== undefined)
-    add("reference_number", input.reference_number);
+/*
+|--------------------------------------------------------------------------
+| ADMIN VEHICLE LIST
+|--------------------------------------------------------------------------
+|
+| This query intentionally includes draft, published, archived,
+| available, reserved and sold vehicles.
+|
+| A branch ID may also be supplied by the service layer to enforce
+| branch administrator access.
+|
+*/
 
-  if (input.slug !== undefined)
-    add("slug", input.slug);
+export const findAdminCars =
+  async (
+    query: AdminCarsQuery,
+    scopedBranchId?: number,
+  ): Promise<AdminCarsResult> => {
+    const conditions:
+      string[] = [];
 
-  if (input.vin !== undefined)
-    add("vin", input.vin);
+    const values: Array<
+      string | number | boolean
+    > = [];
 
-  if (input.branch_id !== undefined)
-    add("branch_id", input.branch_id);
+    /*
+    |--------------------------------------------------------------------------
+    | BRANCH SCOPE
+    |--------------------------------------------------------------------------
+    */
 
-  if (input.make !== undefined)
-    add("make", input.make);
+    if (
+      scopedBranchId !==
+      undefined
+    ) {
+      conditions.push(
+        "c.branch_id = ?",
+      );
 
-  if (input.model !== undefined)
-    add("model", input.model);
+      values.push(
+        scopedBranchId,
+      );
+    } else if (
+      query.branch_id !==
+      undefined
+    ) {
+      conditions.push(
+        "c.branch_id = ?",
+      );
 
-  if (input.year !== undefined)
-    add("year", input.year);
+      values.push(
+        query.branch_id,
+      );
+    }
 
-  if (input.price !== undefined)
-    add("price", input.price);
+    /*
+    |--------------------------------------------------------------------------
+    | SEARCH
+    |--------------------------------------------------------------------------
+    */
 
-  if (input.mileage !== undefined)
-    add("mileage", input.mileage);
+    if (
+      query.search !== undefined
+    ) {
+      conditions.push(
+        `(
+          c.make LIKE ?
+          OR c.model LIKE ?
+          OR c.reference_number LIKE ?
+          OR c.slug LIKE ?
+          OR c.vin LIKE ?
+        )`,
+      );
 
-  if (input.condition_type !== undefined)
-    add("condition_type", input.condition_type);
+      const pattern =
+        `%${query.search}%`;
 
-  if (input.transmission !== undefined)
-    add("transmission", input.transmission);
+      values.push(
+        pattern,
+        pattern,
+        pattern,
+        pattern,
+        pattern,
+      );
+    }
 
-  if (input.fuel_type !== undefined)
-    add("fuel_type", input.fuel_type);
+    /*
+    |--------------------------------------------------------------------------
+    | PUBLICATION STATUS
+    |--------------------------------------------------------------------------
+    */
 
-  if (input.description !== undefined)
-    add("description", input.description);
+    if (
+      query.publication_status !==
+      undefined
+    ) {
+      conditions.push(
+        "c.publication_status = ?",
+      );
 
-  if (input.color_exterior !== undefined)
-    add("color_exterior", input.color_exterior);
+      values.push(
+        query.publication_status,
+      );
+    }
 
-  if (input.color_interior !== undefined)
-    add("color_interior", input.color_interior);
+    /*
+    |--------------------------------------------------------------------------
+    | SALE STATUS
+    |--------------------------------------------------------------------------
+    */
 
-  if (input.engine_size !== undefined)
-    add("engine_size", input.engine_size);
+    if (
+      query.sale_status !==
+      undefined
+    ) {
+      conditions.push(
+        "c.sale_status = ?",
+      );
 
-  if (input.horsepower !== undefined)
-    add("horsepower", input.horsepower);
+      values.push(
+        query.sale_status,
+      );
+    }
 
-  if (input.body_type !== undefined)
-    add("body_type", input.body_type);
+    /*
+    |--------------------------------------------------------------------------
+    | FEATURED STATUS
+    |--------------------------------------------------------------------------
+    */
 
-  if (input.num_doors !== undefined)
-    add("num_doors", input.num_doors);
+    if (
+      query.featured !==
+      undefined
+    ) {
+      conditions.push(
+        "c.is_featured = ?",
+      );
 
-  if (input.num_seats !== undefined)
-    add("num_seats", input.num_seats);
+      values.push(
+        query.featured,
+      );
+    }
 
-  if (input.drivetrain !== undefined)
-    add("drivetrain", input.drivetrain);
+    /*
+    |--------------------------------------------------------------------------
+    | SORTING
+    |--------------------------------------------------------------------------
+    */
 
-  if (input.registration_status !== undefined)
-    add(
-      "registration_status",
-      input.registration_status,
+    const orderBy = {
+      latest:
+        "c.created_at DESC",
+
+      oldest:
+        "c.created_at ASC",
+
+      price_asc:
+        "c.price ASC",
+
+      price_desc:
+        "c.price DESC",
+
+      year_asc:
+        "c.year ASC",
+
+      year_desc:
+        "c.year DESC",
+    }[query.sort];
+
+    const whereClause =
+      conditions.length > 0
+        ? `WHERE ${conditions.join(
+            " AND ",
+          )}`
+        : "";
+
+    const offset =
+      (query.page - 1) *
+      query.limit;
+
+    /*
+    |--------------------------------------------------------------------------
+    | GET VEHICLES
+    |--------------------------------------------------------------------------
+    */
+
+    const [rows] =
+      await databasePool.execute<
+        CarRow[]
+      >(
+        `
+          ${carSelect}
+          ${whereClause}
+          ORDER BY ${orderBy}
+          LIMIT ?
+          OFFSET ?
+        `,
+        [
+          ...values,
+          query.limit,
+          offset,
+        ],
+      );
+
+    /*
+    |--------------------------------------------------------------------------
+    | COUNT VEHICLES
+    |--------------------------------------------------------------------------
+    */
+
+    const [countRows] =
+      await databasePool.execute<
+        CarCountRow[]
+      >(
+        `
+          SELECT
+            COUNT(*) AS total
+          FROM cars c
+          ${whereClause}
+        `,
+        values,
+      );
+
+    return {
+      cars:
+        rows.map(mapCar),
+
+      total:
+        countRows[0]?.total ??
+        0,
+    };
+  };
+
+/*
+|--------------------------------------------------------------------------
+| PUBLIC VEHICLE BY SLUG
+|--------------------------------------------------------------------------
+*/
+
+export const findPublishedCarBySlug =
+  async (
+    slug: string,
+  ): Promise<Car | null> => {
+    const [rows] =
+      await databasePool.execute<
+        CarRow[]
+      >(
+        `
+          ${carSelect}
+          WHERE c.slug = ?
+            AND c.publication_status = 'published'
+          LIMIT 1
+        `,
+        [slug],
+      );
+
+    return rows[0]
+      ? mapCar(rows[0])
+      : null;
+  };
+
+/*
+|--------------------------------------------------------------------------
+| VEHICLE BY ID
+|--------------------------------------------------------------------------
+*/
+
+export const findCarById =
+  async (
+    carId: number,
+  ): Promise<Car | null> => {
+    const [rows] =
+      await databasePool.execute<
+        CarRow[]
+      >(
+        `
+          ${carSelect}
+          WHERE c.car_id = ?
+          LIMIT 1
+        `,
+        [carId],
+      );
+
+    return rows[0]
+      ? mapCar(rows[0])
+      : null;
+  };
+
+/*
+|--------------------------------------------------------------------------
+| REFERENCE NUMBER LOOKUP
+|--------------------------------------------------------------------------
+*/
+
+export const findCarByReferenceNumber =
+  async (
+    referenceNumber: string,
+    excludedId?: number,
+  ): Promise<number | null> => {
+    const sql =
+      excludedId === undefined
+        ? `
+            SELECT car_id
+            FROM cars
+            WHERE reference_number = ?
+            LIMIT 1
+          `
+        : `
+            SELECT car_id
+            FROM cars
+            WHERE reference_number = ?
+              AND car_id <> ?
+            LIMIT 1
+          `;
+
+    const params =
+      excludedId === undefined
+        ? [referenceNumber]
+        : [
+            referenceNumber,
+            excludedId,
+          ];
+
+    const [rows] =
+      await databasePool.execute<
+        CarIdentityRow[]
+      >(
+        sql,
+        params,
+      );
+
+    return (
+      rows[0]?.car_id ??
+      null
     );
+  };
 
-  if (input.num_previous_owners !== undefined)
-    add(
-      "num_previous_owners",
-      input.num_previous_owners,
+/*
+|--------------------------------------------------------------------------
+| SLUG LOOKUP
+|--------------------------------------------------------------------------
+*/
+
+export const findCarBySlug =
+  async (
+    slug: string,
+    excludedId?: number,
+  ): Promise<number | null> => {
+    const sql =
+      excludedId === undefined
+        ? `
+            SELECT car_id
+            FROM cars
+            WHERE slug = ?
+            LIMIT 1
+          `
+        : `
+            SELECT car_id
+            FROM cars
+            WHERE slug = ?
+              AND car_id <> ?
+            LIMIT 1
+          `;
+
+    const params =
+      excludedId === undefined
+        ? [slug]
+        : [
+            slug,
+            excludedId,
+          ];
+
+    const [rows] =
+      await databasePool.execute<
+        CarIdentityRow[]
+      >(
+        sql,
+        params,
+      );
+
+    return (
+      rows[0]?.car_id ??
+      null
     );
+  };
 
-  if (input.import_status !== undefined)
-    add("import_status", input.import_status);
+/*
+|--------------------------------------------------------------------------
+| VIN LOOKUP
+|--------------------------------------------------------------------------
+*/
 
-  if (input.negotiable !== undefined)
-    add("negotiable", input.negotiable);
+export const findCarByVin =
+  async (
+    vin: string,
+    excludedId?: number,
+  ): Promise<number | null> => {
+    const sql =
+      excludedId === undefined
+        ? `
+            SELECT car_id
+            FROM cars
+            WHERE vin = ?
+            LIMIT 1
+          `
+        : `
+            SELECT car_id
+            FROM cars
+            WHERE vin = ?
+              AND car_id <> ?
+            LIMIT 1
+          `;
 
-  if (input.features !== undefined)
-    add(
-      "features",
-      input.features === null
-        ? null
-        : JSON.stringify(input.features),
+    const params =
+      excludedId === undefined
+        ? [vin]
+        : [
+            vin,
+            excludedId,
+          ];
+
+    const [rows] =
+      await databasePool.execute<
+        CarIdentityRow[]
+      >(
+        sql,
+        params,
+      );
+
+    return (
+      rows[0]?.car_id ??
+      null
     );
+  };
 
-  if (input.warranty_status !== undefined)
-    add("warranty_status", input.warranty_status);
+/*
+|--------------------------------------------------------------------------
+| CREATE VEHICLE
+|--------------------------------------------------------------------------
+*/
 
-  values.push(carId);
+export const createCar =
+  async (
+    input: CreateCarInput,
+    adminId: number,
+  ): Promise<Car> => {
+    const [result] =
+      await databasePool.execute<
+        ResultSetHeader
+      >(
+        `
+          INSERT INTO cars (
+            reference_number,
+            slug,
+            vin,
+            created_by_admin_id,
+            branch_id,
+            make,
+            model,
+            year,
+            price,
+            mileage,
+            condition_type,
+            transmission,
+            fuel_type,
+            description,
+            color_exterior,
+            color_interior,
+            engine_size,
+            horsepower,
+            body_type,
+            num_doors,
+            num_seats,
+            drivetrain,
+            registration_status,
+            num_previous_owners,
+            import_status,
+            negotiable,
+            features,
+            warranty_status
+          )
+          VALUES (
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+          )
+        `,
+        [
+          input.reference_number,
+          input.slug,
+          input.vin ?? null,
+          adminId,
+          input.branch_id,
+          input.make,
+          input.model,
+          input.year ?? null,
+          input.price,
+          input.mileage ?? null,
+          input.condition_type ??
+            null,
+          input.transmission ??
+            null,
+          input.fuel_type ??
+            null,
+          input.description ??
+            null,
+          input.color_exterior ??
+            null,
+          input.color_interior ??
+            null,
+          input.engine_size ??
+            null,
+          input.horsepower ??
+            null,
+          input.body_type ??
+            null,
+          input.num_doors ??
+            null,
+          input.num_seats ??
+            null,
+          input.drivetrain ??
+            null,
+          input.registration_status ??
+            null,
+          input.num_previous_owners ??
+            null,
+          input.import_status ??
+            null,
+          input.negotiable,
+          input.features ===
+              undefined ||
+            input.features ===
+              null
+            ? null
+            : JSON.stringify(
+                input.features,
+              ),
+          input.warranty_status ??
+            null,
+        ],
+      );
 
-  await databasePool.execute<ResultSetHeader>(
-    `
-      UPDATE cars
-      SET ${updates.join(", ")}
-      WHERE car_id = ?
-    `,
-    values,
-  );
-};
-export const updateCarPublicationStatus = async (
-  carId: number,
-  publicationStatus: "draft" | "published" | "archived",
-): Promise<void> => {
-  if (publicationStatus === "published") {
-    await databasePool.execute<ResultSetHeader>(
+    const car =
+      await findCarById(
+        result.insertId,
+      );
+
+    if (!car) {
+      throw new Error(
+        "The newly created car could not be retrieved.",
+      );
+    }
+
+    return car;
+  };
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE VEHICLE
+|--------------------------------------------------------------------------
+*/
+
+export const updateCar =
+  async (
+    carId: number,
+    input: UpdateCarInput,
+  ): Promise<void> => {
+    const updates:
+      string[] = [];
+
+    const values: Array<
+      | string
+      | number
+      | boolean
+      | null
+    > = [];
+
+    const add = (
+      column: string,
+      value:
+        | string
+        | number
+        | boolean
+        | null,
+    ): void => {
+      updates.push(
+        `${column} = ?`,
+      );
+
+      values.push(value);
+    };
+
+    if (
+      input.reference_number !==
+      undefined
+    ) {
+      add(
+        "reference_number",
+        input.reference_number,
+      );
+    }
+
+    if (
+      input.slug !== undefined
+    ) {
+      add(
+        "slug",
+        input.slug,
+      );
+    }
+
+    if (
+      input.vin !== undefined
+    ) {
+      add("vin", input.vin);
+    }
+
+    if (
+      input.branch_id !==
+      undefined
+    ) {
+      add(
+        "branch_id",
+        input.branch_id,
+      );
+    }
+
+    if (
+      input.make !== undefined
+    ) {
+      add(
+        "make",
+        input.make,
+      );
+    }
+
+    if (
+      input.model !== undefined
+    ) {
+      add(
+        "model",
+        input.model,
+      );
+    }
+
+    if (
+      input.year !== undefined
+    ) {
+      add(
+        "year",
+        input.year,
+      );
+    }
+
+    if (
+      input.price !== undefined
+    ) {
+      add(
+        "price",
+        input.price,
+      );
+    }
+
+    if (
+      input.mileage !==
+      undefined
+    ) {
+      add(
+        "mileage",
+        input.mileage,
+      );
+    }
+
+    if (
+      input.condition_type !==
+      undefined
+    ) {
+      add(
+        "condition_type",
+        input.condition_type,
+      );
+    }
+
+    if (
+      input.transmission !==
+      undefined
+    ) {
+      add(
+        "transmission",
+        input.transmission,
+      );
+    }
+
+    if (
+      input.fuel_type !==
+      undefined
+    ) {
+      add(
+        "fuel_type",
+        input.fuel_type,
+      );
+    }
+
+    if (
+      input.description !==
+      undefined
+    ) {
+      add(
+        "description",
+        input.description,
+      );
+    }
+
+    if (
+      input.color_exterior !==
+      undefined
+    ) {
+      add(
+        "color_exterior",
+        input.color_exterior,
+      );
+    }
+
+    if (
+      input.color_interior !==
+      undefined
+    ) {
+      add(
+        "color_interior",
+        input.color_interior,
+      );
+    }
+
+    if (
+      input.engine_size !==
+      undefined
+    ) {
+      add(
+        "engine_size",
+        input.engine_size,
+      );
+    }
+
+    if (
+      input.horsepower !==
+      undefined
+    ) {
+      add(
+        "horsepower",
+        input.horsepower,
+      );
+    }
+
+    if (
+      input.body_type !==
+      undefined
+    ) {
+      add(
+        "body_type",
+        input.body_type,
+      );
+    }
+
+    if (
+      input.num_doors !==
+      undefined
+    ) {
+      add(
+        "num_doors",
+        input.num_doors,
+      );
+    }
+
+    if (
+      input.num_seats !==
+      undefined
+    ) {
+      add(
+        "num_seats",
+        input.num_seats,
+      );
+    }
+
+    if (
+      input.drivetrain !==
+      undefined
+    ) {
+      add(
+        "drivetrain",
+        input.drivetrain,
+      );
+    }
+
+    if (
+      input.registration_status !==
+      undefined
+    ) {
+      add(
+        "registration_status",
+        input.registration_status,
+      );
+    }
+
+    if (
+      input.num_previous_owners !==
+      undefined
+    ) {
+      add(
+        "num_previous_owners",
+        input.num_previous_owners,
+      );
+    }
+
+    if (
+      input.import_status !==
+      undefined
+    ) {
+      add(
+        "import_status",
+        input.import_status,
+      );
+    }
+
+    if (
+      input.negotiable !==
+      undefined
+    ) {
+      add(
+        "negotiable",
+        input.negotiable,
+      );
+    }
+
+    if (
+      input.features !==
+      undefined
+    ) {
+      add(
+        "features",
+        input.features === null
+          ? null
+          : JSON.stringify(
+              input.features,
+            ),
+      );
+    }
+
+    if (
+      input.warranty_status !==
+      undefined
+    ) {
+      add(
+        "warranty_status",
+        input.warranty_status,
+      );
+    }
+
+    values.push(carId);
+
+    await databasePool.execute<
+      ResultSetHeader
+    >(
       `
         UPDATE cars
-        SET
-          publication_status = ?,
-          published_at = CURRENT_TIMESTAMP
+        SET ${updates.join(", ")}
         WHERE car_id = ?
       `,
-      [publicationStatus, carId],
+      values,
     );
+  };
 
-    return;
-  }
+/*
+|--------------------------------------------------------------------------
+| PUBLICATION STATUS
+|--------------------------------------------------------------------------
+*/
 
-  await databasePool.execute<ResultSetHeader>(
-    `
-      UPDATE cars
-      SET publication_status = ?
-      WHERE car_id = ?
-    `,
-    [publicationStatus, carId],
-  );
-};
+export const updateCarPublicationStatus =
+  async (
+    carId: number,
+    publicationStatus:
+      | "draft"
+      | "published"
+      | "archived",
+  ): Promise<void> => {
+    if (
+      publicationStatus ===
+      "published"
+    ) {
+      await databasePool.execute<
+        ResultSetHeader
+      >(
+        `
+          UPDATE cars
+          SET
+            publication_status = ?,
+            published_at = CURRENT_TIMESTAMP
+          WHERE car_id = ?
+        `,
+        [
+          publicationStatus,
+          carId,
+        ],
+      );
 
-export const updateCarSaleStatus = async (
-  carId: number,
-  saleStatus: "available" | "reserved" | "sold",
-): Promise<void> => {
-  await databasePool.execute<ResultSetHeader>(
-    `
-      UPDATE cars
-      SET sale_status = ?
-      WHERE car_id = ?
-    `,
-    [saleStatus, carId],
-  );
-};
+      return;
+    }
 
-export const updateCarFeaturedStatus = async (
-  carId: number,
-  isFeatured: boolean,
-): Promise<void> => {
-  await databasePool.execute<ResultSetHeader>(
-    `
-      UPDATE cars
-      SET is_featured = ?
-      WHERE car_id = ?
-    `,
-    [isFeatured, carId],
-  );
-};
-
-export const permanentlyDeleteCar = async (
-  carId: number,
-): Promise<boolean> => {
-  const [result] =
-    await databasePool.execute<ResultSetHeader>(
+    await databasePool.execute<
+      ResultSetHeader
+    >(
       `
-        DELETE FROM cars
+        UPDATE cars
+        SET publication_status = ?
         WHERE car_id = ?
       `,
-      [carId],
+      [
+        publicationStatus,
+        carId,
+      ],
     );
+  };
 
-  return result.affectedRows > 0;
-};
+/*
+|--------------------------------------------------------------------------
+| SALE STATUS
+|--------------------------------------------------------------------------
+*/
+
+export const updateCarSaleStatus =
+  async (
+    carId: number,
+    saleStatus:
+      | "available"
+      | "reserved"
+      | "sold",
+  ): Promise<void> => {
+    await databasePool.execute<
+      ResultSetHeader
+    >(
+      `
+        UPDATE cars
+        SET sale_status = ?
+        WHERE car_id = ?
+      `,
+      [
+        saleStatus,
+        carId,
+      ],
+    );
+  };
+
+/*
+|--------------------------------------------------------------------------
+| FEATURED STATUS
+|--------------------------------------------------------------------------
+*/
+
+export const updateCarFeaturedStatus =
+  async (
+    carId: number,
+    isFeatured: boolean,
+  ): Promise<void> => {
+    await databasePool.execute<
+      ResultSetHeader
+    >(
+      `
+        UPDATE cars
+        SET is_featured = ?
+        WHERE car_id = ?
+      `,
+      [
+        isFeatured,
+        carId,
+      ],
+    );
+  };
+
+/*
+|--------------------------------------------------------------------------
+| PERMANENT DELETE
+|--------------------------------------------------------------------------
+*/
+
+export const permanentlyDeleteCar =
+  async (
+    carId: number,
+  ): Promise<boolean> => {
+    const [result] =
+      await databasePool.execute<
+        ResultSetHeader
+      >(
+        `
+          DELETE FROM cars
+          WHERE car_id = ?
+        `,
+        [carId],
+      );
+
+    return (
+      result.affectedRows > 0
+    );
+  };
