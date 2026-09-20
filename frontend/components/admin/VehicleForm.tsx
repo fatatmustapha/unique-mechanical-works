@@ -5,6 +5,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 
 import {
+  ArrowLeft,
+  ArrowRight,
   BadgeCheck,
   CarFront,
   Check,
@@ -26,7 +28,14 @@ import AdminSelect from "@/components/admin/AdminSelect";
 
 import {
   createAdminCar,
+  deleteAdminCarImage,
+  getAdminCar,
+  getAdminCarImages,
+  reorderAdminCarImages,
+  setAdminCarPrimaryImage,
+  updateAdminCar,
   uploadAdminCarImage,
+  type CarImage,
   type CreateAdminCarInput,
 } from "@/lib/api/admin-cars";
 
@@ -382,8 +391,14 @@ const inputClass =
 |--------------------------------------------------------------------------
 */
 
-export default function VehicleForm() {
+type VehicleFormProps = {
+  carId?: number;
+};
+
+export default function VehicleForm({ carId }: VehicleFormProps) {
   const router = useRouter();
+
+  const isEditMode = carId !== undefined;
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -412,6 +427,12 @@ export default function VehicleForm() {
   const [error, setError] = useState<string | null>(null);
 
   const [slugTouched, setSlugTouched] = useState(false);
+
+  const [existingImages, setExistingImages] = useState<CarImage[]>([]);
+
+  const [vehicleLoading, setVehicleLoading] = useState(isEditMode);
+
+  const [imageActionId, setImageActionId] = useState<number | null>(null);
 
   /*
   |--------------------------------------------------------------------------
@@ -445,13 +466,108 @@ export default function VehicleForm() {
   |--------------------------------------------------------------------------
   */
 
+  const selectedImagesRef = useRef<SelectedVehicleImage[]>([]);
+
+  useEffect(() => {
+    selectedImagesRef.current = selectedImages;
+  }, [selectedImages]);
+
   useEffect(() => {
     return () => {
-      selectedImages.forEach((image) => {
+      selectedImagesRef.current.forEach((image) => {
         URL.revokeObjectURL(image.previewUrl);
       });
     };
-  }, [selectedImages]);
+  }, []);
+
+  /*
+  |--------------------------------------------------------------------------
+  | LOAD VEHICLE IN EDIT MODE
+  |--------------------------------------------------------------------------
+  */
+
+  useEffect(() => {
+    if (!isEditMode || carId === undefined) {
+      return;
+    }
+
+    const loadVehicle = async () => {
+      try {
+        setVehicleLoading(true);
+        setError(null);
+
+        const [carResponse, imagesResponse] = await Promise.all([
+          getAdminCar(carId),
+          getAdminCarImages(carId),
+        ]);
+
+        const car = carResponse.data.car;
+
+        setForm({
+          reference_number: car.reference_number ?? "",
+          slug: car.slug ?? "",
+          branch_id: car.branch_id ? String(car.branch_id) : "",
+          make: car.make ?? "",
+          model: car.model ?? "",
+          price:
+            car.price !== null && car.price !== undefined
+              ? String(car.price)
+              : "",
+          vin: car.vin ?? "",
+          year:
+            car.year !== null && car.year !== undefined ? String(car.year) : "",
+          mileage:
+            car.mileage !== null && car.mileage !== undefined
+              ? String(car.mileage)
+              : "",
+          condition_type: car.condition_type ?? "",
+          transmission: car.transmission ?? "",
+          fuel_type: car.fuel_type ?? "",
+          description: car.description ?? "",
+          color_exterior: car.color_exterior ?? "",
+          color_interior: car.color_interior ?? "",
+          engine_size: car.engine_size ?? "",
+          horsepower:
+            car.horsepower !== null && car.horsepower !== undefined
+              ? String(car.horsepower)
+              : "",
+          body_type: car.body_type ?? "",
+          num_doors:
+            car.num_doors !== null && car.num_doors !== undefined
+              ? String(car.num_doors)
+              : "",
+          num_seats:
+            car.num_seats !== null && car.num_seats !== undefined
+              ? String(car.num_seats)
+              : "",
+          drivetrain: car.drivetrain ?? "",
+          registration_status: car.registration_status ?? "",
+          num_previous_owners:
+            car.num_previous_owners !== null &&
+            car.num_previous_owners !== undefined
+              ? String(car.num_previous_owners)
+              : "",
+          import_status: car.import_status ?? "",
+          warranty_status: car.warranty_status ?? "",
+          negotiable: car.negotiable ?? true,
+        });
+
+        setSelectedFeatures(Array.isArray(car.features) ? car.features : []);
+        setExistingImages(imagesResponse.data ?? []);
+        setSlugTouched(true);
+      } catch (error: unknown) {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Unable to load the vehicle.",
+        );
+      } finally {
+        setVehicleLoading(false);
+      }
+    };
+
+    void loadVehicle();
+  }, [carId, isEditMode]);
 
   /*
   |--------------------------------------------------------------------------
@@ -604,6 +720,125 @@ export default function VehicleForm() {
 
     if (event.dataTransfer.files.length > 0) {
       addImages(event.dataTransfer.files);
+    }
+  };
+
+  const getExistingImageUrl = (imageUrl: string) => {
+    if (/^https?:\/\//i.test(imageUrl)) {
+      return imageUrl;
+    }
+
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL ?? "http://localhost:5000";
+    return `${backendUrl.replace(/\/$/, "")}/${imageUrl.replace(/^\//, "")}`;
+  };
+
+  const removeExistingImage = async (image: CarImage) => {
+    if (!carId) return;
+
+    const confirmed = window.confirm("Remove this vehicle photo permanently?");
+    if (!confirmed) return;
+
+    try {
+      setImageActionId(image.image_id);
+      setError(null);
+      await deleteAdminCarImage(carId, image.image_id);
+      setExistingImages((current) =>
+        current.filter((item) => item.image_id !== image.image_id),
+      );
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error ? error.message : "Unable to remove the photo.",
+      );
+    } finally {
+      setImageActionId(null);
+    }
+  };
+
+  const makeExistingPrimary = async (image: CarImage) => {
+    if (!carId || image.is_primary) return;
+
+    try {
+      setImageActionId(image.image_id);
+      setError(null);
+      await setAdminCarPrimaryImage(carId, image.image_id);
+      setExistingImages((current) =>
+        current.map((item) => ({
+          ...item,
+          is_primary: item.image_id === image.image_id,
+        })),
+      );
+      setPrimaryImageId(null);
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to change the cover photo.",
+      );
+    } finally {
+      setImageActionId(null);
+    }
+  };
+  const moveExistingImage = async (
+    imageId: number,
+    direction: "left" | "right",
+  ) => {
+    if (!carId || imageActionId !== null) {
+      return;
+    }
+
+    const orderedImages = [...existingImages].sort(
+      (a, b) => a.sort_order - b.sort_order,
+    );
+
+    const currentIndex = orderedImages.findIndex(
+      (image) => image.image_id === imageId,
+    );
+
+    if (currentIndex === -1) {
+      return;
+    }
+
+    const targetIndex =
+      direction === "left" ? currentIndex - 1 : currentIndex + 1;
+
+    if (targetIndex < 0 || targetIndex >= orderedImages.length) {
+      return;
+    }
+
+    const reorderedImages = [...orderedImages];
+
+    [reorderedImages[currentIndex], reorderedImages[targetIndex]] = [
+      reorderedImages[targetIndex],
+      reorderedImages[currentIndex],
+    ];
+
+    const normalizedImages = reorderedImages.map((image, index) => ({
+      ...image,
+      sort_order: index,
+    }));
+
+    try {
+      setImageActionId(imageId);
+      setError(null);
+
+      await reorderAdminCarImages(
+        carId,
+        normalizedImages.map((image) => ({
+          image_id: image.image_id,
+          sort_order: image.sort_order,
+        })),
+      );
+
+      setExistingImages(normalizedImages);
+    } catch (error: unknown) {
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Unable to reorder the vehicle photos.",
+      );
+    } finally {
+      setImageActionId(null);
     }
   };
 
@@ -795,18 +1030,23 @@ export default function VehicleForm() {
 
     /*
       |--------------------------------------------------------------------------
-      | CREATE VEHICLE + UPLOAD PHOTOS
+      | SAVE VEHICLE + UPLOAD PHOTOS
       |--------------------------------------------------------------------------
       */
 
     try {
       setSubmitting(true);
 
-      setUploadProgress("Creating vehicle...");
+      setUploadProgress(
+        isEditMode ? "Saving changes..." : "Creating vehicle...",
+      );
 
-      const createResponse = await createAdminCar(payload);
+      const saveResponse =
+        isEditMode && carId !== undefined
+          ? await updateAdminCar(carId, payload)
+          : await createAdminCar(payload);
 
-      const newCar = createResponse.data.car;
+      const savedCar = saveResponse.data.car;
 
       if (selectedImages.length > 0) {
         for (let index = 0; index < selectedImages.length; index += 1) {
@@ -817,14 +1057,14 @@ export default function VehicleForm() {
           );
 
           await uploadAdminCarImage(
-            newCar.car_id,
+            savedCar.car_id,
 
             image.file,
 
             {
               imageLabel: "other",
 
-              altText: `${newCar.make} ${newCar.model} vehicle photo ${
+              altText: `${savedCar.make} ${savedCar.model} vehicle photo ${
                 index + 1
               }`,
 
@@ -845,7 +1085,9 @@ export default function VehicleForm() {
       setError(
         error instanceof Error
           ? error.message
-          : "Unable to create the vehicle.",
+          : isEditMode
+            ? "Unable to update the vehicle."
+            : "Unable to create the vehicle.",
       );
 
       setUploadProgress(null);
@@ -885,6 +1127,22 @@ export default function VehicleForm() {
   | UI
   |--------------------------------------------------------------------------
   */
+
+  if (vehicleLoading) {
+    return (
+      <div className="flex min-h-[320px] items-center justify-center border border-prussian/10 bg-white">
+        <div className="text-center">
+          <LoaderCircle
+            size={28}
+            className="mx-auto animate-spin text-bronze"
+          />
+          <p className="mt-3 text-sm font-bold text-prussian">
+            Loading vehicle...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
@@ -1409,6 +1667,115 @@ export default function VehicleForm() {
           </p>
         </div>
 
+        {isEditMode && existingImages.length > 0 && (
+          <div className="mt-7">
+            <div className="border-b border-prussian/10 pb-4">
+              <h3 className="font-heading text-lg font-bold text-prussian">
+                Current Photos
+              </h3>
+              <p className="mt-1 text-sm text-slate">
+                These photos are already saved. You can change the cover or
+                remove a photo.
+              </p>
+            </div>
+
+            <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {existingImages
+                .slice()
+                .sort((a, b) => a.sort_order - b.sort_order)
+                .map((image, index) => (
+                  <article
+                    key={image.image_id}
+                    className={`overflow-hidden border bg-white ${
+                      image.is_primary ? "border-bronze" : "border-prussian/10"
+                    }`}
+                  >
+                    <div className="relative aspect-[4/3] overflow-hidden bg-prussian/5">
+                      <img
+                        src={getExistingImageUrl(image.image_url)}
+                        alt={image.alt_text ?? `Vehicle photo ${index + 1}`}
+                        className="h-full w-full object-cover"
+                      />
+
+                      {image.is_primary && (
+                        <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 bg-bronze px-2.5 py-1.5 text-xs font-bold text-prussian shadow-sm">
+                          <Star size={13} className="fill-prussian" />
+                          Cover Photo
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={
+                          submitting || imageActionId === image.image_id
+                        }
+                        aria-label="Remove existing image"
+                        onClick={() => void removeExistingImage(image)}
+                        className="absolute right-3 top-3 flex h-9 w-9 items-center justify-center bg-white text-mahogany shadow-sm transition hover:bg-mahogany hover:text-white disabled:opacity-50"
+                      >
+                        {imageActionId === image.image_id ? (
+                          <LoaderCircle size={16} className="animate-spin" />
+                        ) : (
+                          <Trash2 size={16} />
+                        )}
+                      </button>
+                    </div>
+
+                    <div className="p-3">
+                      <div className="mb-3 grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          disabled={
+                            submitting || imageActionId !== null || index === 0
+                          }
+                          onClick={() =>
+                            void moveExistingImage(image.image_id, "left")
+                          }
+                          className="flex min-h-9 items-center justify-center gap-1.5 border border-prussian/15 text-xs font-bold text-prussian transition hover:border-bronze hover:bg-bronze/10 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          <ArrowLeft size={14} />
+                          Move Left
+                        </button>
+
+                        <button
+                          type="button"
+                          disabled={
+                            submitting ||
+                            imageActionId !== null ||
+                            index === existingImages.length - 1
+                          }
+                          onClick={() =>
+                            void moveExistingImage(image.image_id, "right")
+                          }
+                          className="flex min-h-9 items-center justify-center gap-1.5 border border-prussian/15 text-xs font-bold text-prussian transition hover:border-bronze hover:bg-bronze/10 disabled:cursor-not-allowed disabled:opacity-40"
+                        >
+                          Move Right
+                          <ArrowRight size={14} />
+                        </button>
+                      </div>
+                      {image.is_primary ? (
+                        <div className="flex min-h-9 items-center justify-center gap-2 bg-bronze/10 text-xs font-bold text-prussian">
+                          <Check size={14} />
+                          Primary image
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={submitting || imageActionId !== null}
+                          onClick={() => void makeExistingPrimary(image)}
+                          className="flex min-h-9 w-full items-center justify-center gap-2 border border-prussian/15 text-xs font-bold text-prussian transition hover:border-bronze hover:bg-bronze disabled:opacity-50"
+                        >
+                          <Star size={14} />
+                          Make Cover
+                        </button>
+                      )}
+                    </div>
+                  </article>
+                ))}
+            </div>
+          </div>
+        )}
+
         {selectedImages.length > 0 && (
           <div className="mt-7">
             <div className="flex flex-col gap-3 border-b border-prussian/10 pb-4 sm:flex-row sm:items-center sm:justify-between">
@@ -1522,8 +1889,9 @@ export default function VehicleForm() {
             <p className="text-sm font-bold text-prussian">Ready to save?</p>
 
             <p className="mt-1 text-xs text-slate">
-              The vehicle and selected photographs will be saved together. The
-              listing starts as a draft.
+              {isEditMode
+                ? "Changes to the vehicle and any new photographs will be saved together."
+                : "The vehicle and selected photographs will be saved together. The listing starts as a draft."}
             </p>
 
             {uploadProgress && (
@@ -1556,7 +1924,7 @@ export default function VehicleForm() {
               ) : (
                 <>
                   <Save size={18} />
-                  Save Vehicle
+                  {isEditMode ? "Save Changes" : "Save Vehicle"}
                 </>
               )}
             </button>

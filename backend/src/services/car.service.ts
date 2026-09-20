@@ -528,26 +528,10 @@ export const publishCar =
     carId: number,
     admin: AdminScope,
   ): Promise<Car> => {
-    const car =
-      await getManageableCar(
-        carId,
-        admin,
-      );
-
-    if (
-      car.publication_status ===
-      "archived"
-    ) {
-      throw new AppError({
-        statusCode: 409,
-
-        code:
-          "ARCHIVED_CAR_CANNOT_BE_PUBLISHED",
-
-        message:
-          "An archived car must be restored before it can be published.",
-      });
-    }
+    await getManageableCar(
+      carId,
+      admin,
+    );
 
     await updateCarPublicationStatus(
       carId,

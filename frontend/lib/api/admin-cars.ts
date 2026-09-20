@@ -241,6 +241,51 @@ export type CreateAdminCarResponse = {
   message: string;
 };
 
+export type AdminCarResponse = {
+  success: boolean;
+
+  data: {
+    car: AdminCar;
+  };
+
+  message: string;
+};
+
+export type UpdateAdminCarInput =
+  Partial<CreateAdminCarInput>;
+
+export type CarImagesResponse = {
+  success: boolean;
+
+  data: CarImage[];
+
+  message: string;
+};
+
+export type CarImageResponse = {
+  success: boolean;
+
+  data: {
+    image: CarImage;
+  };
+
+  message: string;
+};
+
+export type UpdateAdminCarImageInput = {
+  image_label?:
+    | "front"
+    | "back"
+    | "side"
+    | "interior"
+    | "engine"
+    | "other";
+
+  alt_text?: string | null;
+
+  sort_order?: number;
+};
+
 /*
 |--------------------------------------------------------------------------
 | IMAGE TYPES
@@ -387,6 +432,42 @@ export async function getAdminCars(
     }`,
     {
       method: "GET",
+    },
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| GET ONE ADMIN VEHICLE
+|--------------------------------------------------------------------------
+*/
+
+export async function getAdminCar(
+  carId: number,
+): Promise<AdminCarResponse> {
+  return apiRequest<AdminCarResponse>(
+    `/admin/cars/${carId}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE ADMIN VEHICLE
+|--------------------------------------------------------------------------
+*/
+
+export async function updateAdminCar(
+  carId: number,
+  input: UpdateAdminCarInput,
+): Promise<AdminCarResponse> {
+  return apiRequest<AdminCarResponse>(
+    `/admin/cars/${carId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(input),
     },
   );
 }
@@ -636,4 +717,105 @@ export async function uploadAdminCarImage(
   }
 
   return data as UploadCarImageResponse;
+}
+
+/*
+|--------------------------------------------------------------------------
+| GET VEHICLE IMAGES
+|--------------------------------------------------------------------------
+*/
+
+export async function getAdminCarImages(
+  carId: number,
+): Promise<CarImagesResponse> {
+  return apiRequest<CarImagesResponse>(
+    `/cars/${carId}/images`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| UPDATE VEHICLE IMAGE
+|--------------------------------------------------------------------------
+*/
+
+export async function updateAdminCarImage(
+  carId: number,
+  imageId: number,
+  input: UpdateAdminCarImageInput,
+): Promise<CarImageResponse> {
+  return apiRequest<CarImageResponse>(
+    `/cars/${carId}/images/${imageId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| SET PRIMARY / COVER IMAGE
+|--------------------------------------------------------------------------
+*/
+
+export async function setAdminCarPrimaryImage(
+  carId: number,
+  imageId: number,
+): Promise<CarImageResponse> {
+  return apiRequest<CarImageResponse>(
+    `/cars/${carId}/images/${imageId}/primary`,
+    {
+      method: "PATCH",
+    },
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| REORDER VEHICLE IMAGES
+|--------------------------------------------------------------------------
+*/
+
+export async function reorderAdminCarImages(
+  carId: number,
+  images: Array<{
+    image_id: number;
+    sort_order: number;
+  }>,
+): Promise<CarImagesResponse> {
+  return apiRequest<CarImagesResponse>(
+    `/cars/${carId}/images/reorder`,
+    {
+      method: "PATCH",
+      body: JSON.stringify({
+        images,
+      }),
+    },
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| DELETE VEHICLE IMAGE
+|--------------------------------------------------------------------------
+*/
+
+export async function deleteAdminCarImage(
+  carId: number,
+  imageId: number,
+): Promise<{
+  success: boolean;
+  data: Record<string, never>;
+  message: string;
+}> {
+  return apiRequest(
+    `/cars/${carId}/images/${imageId}`,
+    {
+      method: "DELETE",
+    },
+  );
 }
