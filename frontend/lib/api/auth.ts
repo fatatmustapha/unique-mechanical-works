@@ -3,6 +3,8 @@ import { apiRequest } from "@/lib/api/client";
 import type {
   AdminLoginResponse,
   CurrentUserResponse,
+  CustomerLoginResponse,
+  CustomerRegisterResponse,
   LogoutResponse,
 } from "@/types/auth";
 
@@ -11,6 +13,43 @@ export type AdminLoginInput = {
   password: string;
 };
 
+export type CustomerRegisterInput = {
+  first_name: string;
+  last_name: string;
+  phone: string;
+  email?: string;
+  password: string;
+};
+
+export type CustomerLoginInput = {
+  phone: string;
+  password: string;
+};
+
+export async function registerCustomer(
+  input: CustomerRegisterInput,
+): Promise<CustomerRegisterResponse> {
+  return apiRequest<CustomerRegisterResponse>(
+    "/auth/register",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export async function loginCustomer(
+  input: CustomerLoginInput,
+): Promise<CustomerLoginResponse> {
+  return apiRequest<CustomerLoginResponse>(
+    "/auth/login",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
 export async function loginAdmin(
   input: AdminLoginInput,
 ): Promise<AdminLoginResponse> {
@@ -18,7 +57,6 @@ export async function loginAdmin(
     "/auth/admin/login",
     {
       method: "POST",
-
       body: JSON.stringify(input),
     },
   );

@@ -6,11 +6,11 @@ import {
 import { AppError } from "../errors/app-error.js";
 import {
   createCustomer,
-  findActiveBranchById,
   findAdminById,
   findAdminForLogin,
   findCustomerByEmail,
   findCustomerById,
+  findCustomerByPhone,
   findCustomerForLogin,
   updateAdminLastLogin,
   updateCustomerLastLogin,
@@ -118,29 +118,30 @@ const saveRefreshSession = async (
 export const registerCustomer = async (
   input: CustomerRegistrationInput,
 ): Promise<PublicCustomer> => {
-  const existingCustomer =
-    await findCustomerByEmail(input.email);
+  const existingPhone = await findCustomerByPhone(
+    input.phone,
+  );
 
-  if (existingCustomer) {
+  if (existingPhone) {
     throw new AppError({
       statusCode: 409,
-      code: "EMAIL_ALREADY_REGISTERED",
+      code: "PHONE_ALREADY_REGISTERED",
       message:
-        "An account with this email address already exists.",
+        "An account with this phone number already exists.",
     });
   }
 
-  if (input.preferred_branch_id !== undefined) {
-    const branch = await findActiveBranchById(
-      input.preferred_branch_id,
+  if (input.email) {
+    const existingEmail = await findCustomerByEmail(
+      input.email,
     );
 
-    if (!branch) {
+    if (existingEmail) {
       throw new AppError({
-        statusCode: 400,
-        code: "INVALID_PREFERRED_BRANCH",
+        statusCode: 409,
+        code: "EMAIL_ALREADY_REGISTERED",
         message:
-          "The selected preferred branch does not exist or is inactive.",
+          "An account with this email address already exists.",
       });
     }
   }
@@ -159,7 +160,7 @@ export const loginCustomer = async (
   input: CustomerLoginInput,
 ): Promise<CustomerLoginResult> => {
   const customer = await findCustomerForLogin(
-    input.email,
+    input.phone,
   );
 
   if (!customer) {
@@ -167,7 +168,7 @@ export const loginCustomer = async (
       statusCode: 401,
       code: "INVALID_CREDENTIALS",
       message:
-        "The email address or password is incorrect.",
+        "The phone number or password is incorrect.",
     });
   }
 
@@ -181,7 +182,7 @@ export const loginCustomer = async (
       statusCode: 401,
       code: "INVALID_CREDENTIALS",
       message:
-        "The email address or password is incorrect.",
+        "The phone number or password is incorrect.",
     });
   }
 

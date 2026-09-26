@@ -1,48 +1,79 @@
 "use client";
 
 import Image from "next/image";
-import { motion, useScroll, useTransform } from "motion/react";
+import {
+  motion,
+  useScroll,
+  useTransform,
+} from "motion/react";
 import { useRef } from "react";
 
 export default function WhyVision() {
-  const sectionRef = useRef<HTMLElement>(null);
+  const sectionRef =
+    useRef<HTMLElement>(null);
 
-  const { scrollYProgress } = useScroll({
-    target: sectionRef,
-    offset: ["start end", "center center"],
-  });
+  const { scrollYProgress } =
+    useScroll({
+      target: sectionRef,
+      offset: [
+        "start end",
+        "center center",
+      ],
+    });
 
   // Desktop: car rises vertically from below.
-  const desktopCarY = useTransform(scrollYProgress, [0, 1], [260, 0]);
+  const desktopCarY =
+    useTransform(
+      scrollYProgress,
+      [0, 1],
+      [260, 0],
+    );
 
   // Shared scale.
-  const carScale = useTransform(scrollYProgress, [0, 1], [0.92, 1]);
+  const carScale =
+    useTransform(
+      scrollYProgress,
+      [0, 1],
+      [0.92, 1],
+    );
 
   // Desktop opacity.
-  const desktopCarOpacity = useTransform(
-    scrollYProgress,
-    [0, 0.2, 0.65, 1],
-    [0, 0.45, 0.9, 1],
-  );
+  const desktopCarOpacity =
+    useTransform(
+      scrollYProgress,
+      [0, 0.2, 0.65, 1],
+      [0, 0.45, 0.9, 1],
+    );
 
   // Mobile / tablet:
   // car drives horizontally from the left into the center.
-  const mobileCarX = useTransform(scrollYProgress, [0, 1], [-320, 0]);
+  const mobileCarX =
+    useTransform(
+      scrollYProgress,
+      [0, 1],
+      [-320, 0],
+    );
 
-  const mobileCarOpacity = useTransform(
-    scrollYProgress,
-    [0, 0.2, 0.65, 1],
-    [0, 0.45, 0.9, 1],
-  );
+  const mobileCarOpacity =
+    useTransform(
+      scrollYProgress,
+      [0, 0.2, 0.65, 1],
+      [0, 0.45, 0.9, 1],
+    );
 
   return (
     <section
+      id="about"
       ref={sectionRef}
-      className="relative overflow-hidden bg-snow"
+      className="relative scroll-mt-24 overflow-hidden bg-snow"
       aria-labelledby="why-vision-heading"
     >
-      <h2 id="why-vision-heading" className="sr-only">
-        Why Unique Mechanical Works and Our Vision
+      <h2
+        id="why-vision-heading"
+        className="sr-only"
+      >
+        Why Unique Mechanical Works
+        and Our Vision
       </h2>
 
       <div className="relative grid lg:min-h-[800px] lg:grid-cols-2">
@@ -62,17 +93,28 @@ export default function WhyVision() {
             </h3>
 
             <p className="mt-8 max-w-lg text-base leading-8 text-white/75 sm:text-lg sm:leading-9">
-              Every vehicle represents more than transportation — it carries
-              value, safety, ambition, and trust. At Unique Mechanical Works,
-              experience meets precision in everything we do, from the
-              vehicles we sell to the repairs, refinishing, bodywork, and
-              upgrades we deliver.
+              Every vehicle represents
+              more than transportation —
+              it carries value, safety,
+              ambition, and trust. At
+              Unique Mechanical Works,
+              experience meets precision
+              in everything we do, from
+              the vehicles we sell to the
+              repairs, refinishing,
+              bodywork, and upgrades we
+              deliver.
             </p>
 
             <p className="mt-5 max-w-lg text-base leading-8 text-white/75 sm:text-lg sm:leading-9">
-              Across Kano and Abuja, we bring together skilled hands, careful
-              attention to detail, and a standard of service designed to give
-              every customer complete confidence in their vehicle.
+              Across Kano and Abuja, we
+              bring together skilled
+              hands, careful attention to
+              detail, and a standard of
+              service designed to give
+              every customer complete
+              confidence in their
+              vehicle.
             </p>
 
             <div className="mt-10 grid grid-cols-2 gap-x-8 border-t border-white/15 pt-7">
@@ -115,15 +157,25 @@ export default function WhyVision() {
             </h3>
 
             <p className="mt-8 max-w-lg text-base leading-8 text-slate sm:text-lg sm:leading-9">
-              To become one of Nigeria&apos;s most trusted names in automotive
-              care and vehicle ownership — a place drivers turn to not only
-              when they need a car, but throughout every stage of owning one.
+              To become one of
+              Nigeria&apos;s most trusted
+              names in automotive care
+              and vehicle ownership — a
+              place drivers turn to not
+              only when they need a car,
+              but throughout every stage
+              of owning one.
             </p>
 
             <p className="mt-5 max-w-lg text-base leading-8 text-slate sm:text-lg sm:leading-9">
-              We envision Unique Mechanical Works as a lifelong automotive
-              partner, combining exceptional vehicles, expert craftsmanship,
-              and dependable service under one trusted name.
+              We envision Unique
+              Mechanical Works as a
+              lifelong automotive
+              partner, combining
+              exceptional vehicles,
+              expert craftsmanship, and
+              dependable service under
+              one trusted name.
             </p>
 
             <div className="mt-10 border-t border-prussian/10 pt-7">
@@ -132,7 +184,9 @@ export default function WhyVision() {
               </p>
 
               <p className="mt-3 max-w-md font-heading text-xl font-semibold leading-relaxed text-prussian">
-                Confidence in every vehicle. Care through every mile.
+                Confidence in every
+                vehicle. Care through
+                every mile.
               </p>
             </div>
           </div>
@@ -144,7 +198,8 @@ export default function WhyVision() {
           style={{
             y: desktopCarY,
             scale: carScale,
-            opacity: desktopCarOpacity,
+            opacity:
+              desktopCarOpacity,
           }}
           className="pointer-events-none absolute inset-y-0 left-1/2 z-20 hidden w-[480px] -translate-x-1/2 items-center justify-center lg:flex xl:w-[540px]"
         >
@@ -168,7 +223,8 @@ export default function WhyVision() {
             style={{
               x: mobileCarX,
               scale: carScale,
-              opacity: mobileCarOpacity,
+              opacity:
+                mobileCarOpacity,
             }}
           >
             <div className="w-[220px] rotate-90 sm:w-[270px]">

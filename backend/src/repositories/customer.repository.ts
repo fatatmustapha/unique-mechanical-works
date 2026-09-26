@@ -14,8 +14,8 @@ interface CustomerRow extends RowDataPacket {
   customer_id: number;
   first_name: string;
   last_name: string;
-  email: string;
-  phone: string | null;
+  email: string | null;
+  phone: string;
   preferred_branch_id: number | null;
   avatar_url: string | null;
   address: string | null;

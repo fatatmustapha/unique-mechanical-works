@@ -1,5 +1,19 @@
 import { z } from "zod";
 
+const normalizePhone = (phone: string) =>
+  phone.replace(/[\s()-]/g, "");
+
+const phoneSchema = z
+  .string()
+  .trim()
+  .min(7, "A valid phone number is required.")
+  .max(30, "Phone number must not exceed 30 characters.")
+  .transform(normalizePhone)
+  .refine(
+    (phone) => /^\+?\d+$/.test(phone),
+    "Phone number may only contain digits and an optional leading +.",
+  );
+
 export const customerRegistrationSchema = z.object({
   first_name: z
     .string()
@@ -13,32 +27,32 @@ export const customerRegistrationSchema = z.object({
     .min(1, "Last name is required.")
     .max(50, "Last name must not exceed 50 characters."),
 
+  phone: phoneSchema,
+
   email: z
     .string()
     .trim()
     .email("A valid email address is required.")
     .max(150, "Email must not exceed 150 characters.")
-    .transform((email) => email.toLowerCase()),
-
-  phone: z
-    .string()
-    .trim()
-    .max(30, "Phone number must not exceed 30 characters.")
+    .transform((email) => email.toLowerCase())
     .optional(),
 
   password: z
     .string()
     .min(8, "Password must contain at least 8 characters.")
     .max(72, "Password must not exceed 72 characters."),
-
-  preferred_branch_id: z
-    .number()
-    .int()
-    .positive("Preferred branch ID must be a positive integer.")
-    .optional(),
 });
 
 export const customerLoginSchema = z.object({
+  phone: phoneSchema,
+
+  password: z
+    .string()
+    .min(1, "Password is required.")
+    .max(72, "Password must not exceed 72 characters."),
+});
+
+export const adminLoginSchema = z.object({
   email: z
     .string()
     .trim()
@@ -51,8 +65,6 @@ export const customerLoginSchema = z.object({
     .min(1, "Password is required.")
     .max(72, "Password must not exceed 72 characters."),
 });
-
-export const adminLoginSchema = customerLoginSchema;
 
 export type CustomerRegistrationInput = z.infer<
   typeof customerRegistrationSchema

@@ -1,8 +1,15 @@
-import type { ResultSetHeader, RowDataPacket } from "mysql2";
+import type {
+  ResultSetHeader,
+  RowDataPacket,
+} from "mysql2";
 
 import { databasePool } from "../config/database.js";
 import type { AdminRole } from "../types/auth.js";
 import type { CustomerRegistrationInput } from "../validators/auth.validator.js";
+
+interface CustomerPhoneRow extends RowDataPacket {
+  customer_id: number;
+}
 
 interface CustomerEmailRow extends RowDataPacket {
   customer_id: number;
@@ -16,8 +23,8 @@ interface CustomerRow extends RowDataPacket {
   customer_id: number;
   first_name: string;
   last_name: string;
-  email: string;
-  phone: string | null;
+  email: string | null;
+  phone: string;
   preferred_branch_id: number | null;
   avatar_url: string | null;
   address: string | null;
@@ -50,8 +57,8 @@ export interface PublicCustomer {
   customer_id: number;
   first_name: string;
   last_name: string;
-  email: string;
-  phone: string | null;
+  email: string | null;
+  phone: string;
   preferred_branch_id: number | null;
   avatar_url: string | null;
   address: string | null;
@@ -60,7 +67,8 @@ export interface PublicCustomer {
   updated_at: Date;
 }
 
-export interface CustomerForLogin extends PublicCustomer {
+export interface CustomerForLogin
+  extends PublicCustomer {
   password_hash: string;
 }
 
@@ -80,7 +88,8 @@ export interface AdminForLogin extends PublicAdmin {
   password_hash: string;
 }
 
-export interface CreateCustomerData extends CustomerRegistrationInput {
+export interface CreateCustomerData
+  extends CustomerRegistrationInput {
   password_hash: string;
 }
 
@@ -93,7 +102,8 @@ const mapPublicCustomer = (
     last_name: customer.last_name,
     email: customer.email,
     phone: customer.phone,
-    preferred_branch_id: customer.preferred_branch_id,
+    preferred_branch_id:
+      customer.preferred_branch_id,
     avatar_url: customer.avatar_url,
     address: customer.address,
     is_active: customer.is_active === 1,
@@ -118,46 +128,65 @@ const mapPublicAdmin = (
   };
 };
 
+export const findCustomerByPhone = async (
+  phone: string,
+): Promise<{ customer_id: number } | null> => {
+  const [rows] =
+    await databasePool.execute<CustomerPhoneRow[]>(
+      `
+        SELECT customer_id
+        FROM customers
+        WHERE phone = ?
+        LIMIT 1
+      `,
+      [phone],
+    );
+
+  return rows[0] ?? null;
+};
+
 export const findCustomerByEmail = async (
   email: string,
 ): Promise<{ customer_id: number } | null> => {
-  const [rows] = await databasePool.execute<CustomerEmailRow[]>(
-    `
-      SELECT customer_id
-      FROM customers
-      WHERE email = ?
-      LIMIT 1
-    `,
-    [email],
-  );
+  const [rows] =
+    await databasePool.execute<CustomerEmailRow[]>(
+      `
+        SELECT customer_id
+        FROM customers
+        WHERE email = ?
+        LIMIT 1
+      `,
+      [email],
+    );
 
   return rows[0] ?? null;
 };
 
 export const findCustomerForLogin = async (
-  email: string,
+  phone: string,
 ): Promise<CustomerForLogin | null> => {
-  const [rows] = await databasePool.execute<CustomerLoginRow[]>(
-    `
-      SELECT
-        customer_id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        password_hash,
-        preferred_branch_id,
-        avatar_url,
-        address,
-        is_active,
-        created_at,
-        updated_at
-      FROM customers
-      WHERE email = ?
-      LIMIT 1
-    `,
-    [email],
-  );
+  const [rows] =
+    await databasePool.execute<CustomerLoginRow[]>(
+      `
+        SELECT
+          customer_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          password_hash,
+          preferred_branch_id,
+          avatar_url,
+          address,
+          is_active,
+          created_at,
+          updated_at
+        FROM customers
+        WHERE phone = ?
+        LIMIT 1
+      `,
+      [phone],
+    );
 
   const customer = rows[0];
 
@@ -174,26 +203,27 @@ export const findCustomerForLogin = async (
 export const findCustomerById = async (
   customerId: number,
 ): Promise<PublicCustomer | null> => {
-  const [rows] = await databasePool.execute<CustomerRow[]>(
-    `
-      SELECT
-        customer_id,
-        first_name,
-        last_name,
-        email,
-        phone,
-        preferred_branch_id,
-        avatar_url,
-        address,
-        is_active,
-        created_at,
-        updated_at
-      FROM customers
-      WHERE customer_id = ?
-      LIMIT 1
-    `,
-    [customerId],
-  );
+  const [rows] =
+    await databasePool.execute<CustomerRow[]>(
+      `
+        SELECT
+          customer_id,
+          first_name,
+          last_name,
+          email,
+          phone,
+          preferred_branch_id,
+          avatar_url,
+          address,
+          is_active,
+          created_at,
+          updated_at
+        FROM customers
+        WHERE customer_id = ?
+        LIMIT 1
+      `,
+      [customerId],
+    );
 
   const customer = rows[0];
 
@@ -207,16 +237,17 @@ export const findCustomerById = async (
 export const findActiveBranchById = async (
   branchId: number,
 ): Promise<{ branch_id: number } | null> => {
-  const [rows] = await databasePool.execute<BranchRow[]>(
-    `
-      SELECT branch_id
-      FROM branches
-      WHERE branch_id = ?
-        AND is_active = 1
-      LIMIT 1
-    `,
-    [branchId],
-  );
+  const [rows] =
+    await databasePool.execute<BranchRow[]>(
+      `
+        SELECT branch_id
+        FROM branches
+        WHERE branch_id = ?
+          AND is_active = 1
+        LIMIT 1
+      `,
+      [branchId],
+    );
 
   return rows[0] ?? null;
 };
@@ -224,29 +255,30 @@ export const findActiveBranchById = async (
 export const createCustomer = async (
   data: CreateCustomerData,
 ): Promise<PublicCustomer> => {
-  const [result] = await databasePool.execute<ResultSetHeader>(
-    `
-      INSERT INTO customers (
-        first_name,
-        last_name,
-        email,
-        phone,
-        password_hash,
-        preferred_branch_id
-      )
-      VALUES (?, ?, ?, ?, ?, ?)
-    `,
-    [
-      data.first_name,
-      data.last_name,
-      data.email,
-      data.phone ?? null,
-      data.password_hash,
-      data.preferred_branch_id ?? null,
-    ],
-  );
+  const [result] =
+    await databasePool.execute<ResultSetHeader>(
+      `
+        INSERT INTO customers (
+          first_name,
+          last_name,
+          email,
+          phone,
+          password_hash
+        )
+        VALUES (?, ?, ?, ?, ?)
+      `,
+      [
+        data.first_name,
+        data.last_name,
+        data.email ?? null,
+        data.phone,
+        data.password_hash,
+      ],
+    );
 
-  const customer = await findCustomerById(result.insertId);
+  const customer = await findCustomerById(
+    result.insertId,
+  );
 
   if (!customer) {
     throw new Error(
@@ -273,25 +305,26 @@ export const updateCustomerLastLogin = async (
 export const findAdminForLogin = async (
   email: string,
 ): Promise<AdminForLogin | null> => {
-  const [rows] = await databasePool.execute<AdminLoginRow[]>(
-    `
-      SELECT
-        admin_id,
-        first_name,
-        last_name,
-        email,
-        password_hash,
-        branch_id,
-        role,
-        is_active,
-        created_at,
-        updated_at
-      FROM admins
-      WHERE email = ?
-      LIMIT 1
-    `,
-    [email],
-  );
+  const [rows] =
+    await databasePool.execute<AdminLoginRow[]>(
+      `
+        SELECT
+          admin_id,
+          first_name,
+          last_name,
+          email,
+          password_hash,
+          branch_id,
+          role,
+          is_active,
+          created_at,
+          updated_at
+        FROM admins
+        WHERE email = ?
+        LIMIT 1
+      `,
+      [email],
+    );
 
   const admin = rows[0];
 
@@ -308,24 +341,25 @@ export const findAdminForLogin = async (
 export const findAdminById = async (
   adminId: number,
 ): Promise<PublicAdmin | null> => {
-  const [rows] = await databasePool.execute<AdminRow[]>(
-    `
-      SELECT
-        admin_id,
-        first_name,
-        last_name,
-        email,
-        branch_id,
-        role,
-        is_active,
-        created_at,
-        updated_at
-      FROM admins
-      WHERE admin_id = ?
-      LIMIT 1
-    `,
-    [adminId],
-  );
+  const [rows] =
+    await databasePool.execute<AdminRow[]>(
+      `
+        SELECT
+          admin_id,
+          first_name,
+          last_name,
+          email,
+          branch_id,
+          role,
+          is_active,
+          created_at,
+          updated_at
+        FROM admins
+        WHERE admin_id = ?
+        LIMIT 1
+      `,
+      [adminId],
+    );
 
   const admin = rows[0];
 

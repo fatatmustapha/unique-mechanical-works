@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 
 const services = [
   {
@@ -30,7 +29,10 @@ const services = [
 
 export default function ServicesSection() {
   return (
-    <section className="bg-snow py-24 sm:py-28 lg:py-32">
+    <section
+      id="services"
+      className="scroll-mt-24 bg-snow py-24 sm:py-28 lg:py-32"
+    >
       <div className="mx-auto grid max-w-[1440px] gap-14 px-5 sm:px-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-20 lg:px-12">
         {/* SERVICES CONTENT */}
         <div>
@@ -50,47 +52,45 @@ export default function ServicesSection() {
             </h2>
 
             <p className="mt-6 max-w-xl text-base leading-8 text-slate sm:text-lg">
-              From mechanical care to refinishing and upgrades, our services are
-              built around precision, quality, and confidence on the road.
+              From mechanical care to
+              refinishing and upgrades,
+              our services are built
+              around precision, quality,
+              and confidence on the
+              road.
             </p>
           </div>
 
           {/* SERVICE LIST */}
           <div className="mt-12 border-t border-prussian/15">
-            {services.map((service) => (
-              <div
-                key={service.number}
-                className="grid gap-4 border-b border-prussian/15 py-8 sm:grid-cols-[85px_1fr]"
-              >
-                {/* Larger / stronger number */}
-                <span className="font-heading text-2xl font-bold tracking-[-0.02em] text-bronze sm:text-3xl">
-                  {service.number}
-                </span>
+            {services.map(
+              (service) => (
+                <div
+                  key={
+                    service.number
+                  }
+                  className="grid gap-4 border-b border-prussian/15 py-8 sm:grid-cols-[85px_1fr]"
+                >
+                  <span className="font-heading text-2xl font-bold tracking-[-0.02em] text-bronze sm:text-3xl">
+                    {service.number}
+                  </span>
 
-                <div>
-                  <h3 className="font-heading text-2xl font-semibold text-prussian sm:text-3xl">
-                    {service.title}
-                  </h3>
+                  <div>
+                    <h3 className="font-heading text-2xl font-semibold text-prussian sm:text-3xl">
+                      {
+                        service.title
+                      }
+                    </h3>
 
-                  <p className="mt-3 max-w-xl text-sm leading-7 text-slate sm:text-base">
-                    {service.description}
-                  </p>
+                    <p className="mt-3 max-w-xl text-sm leading-7 text-slate sm:text-base">
+                      {
+                        service.description
+                      }
+                    </p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </div>
-
-          {/* SINGLE LINK TO SERVICES PAGE */}
-          <div className="mt-10">
-            <Link
-              href="/services"
-              className="inline-flex min-h-13 items-center justify-center rounded-full bg-prussian px-7 text-sm font-semibold text-white transition-all duration-300 hover:-translate-y-0.5 hover:bg-deep-space"
-            >
-              Explore All Services
-              <span aria-hidden="true" className="ml-3">
-                →
-              </span>
-            </Link>
+              ),
+            )}
           </div>
         </div>
 
@@ -114,7 +114,10 @@ export default function ServicesSection() {
             </p>
 
             <p className="mt-3 max-w-sm font-heading text-xl font-semibold leading-relaxed text-white sm:text-2xl">
-              Skilled work, thoughtful execution, and attention to every detail.
+              Skilled work,
+              thoughtful execution,
+              and attention to every
+              detail.
             </p>
           </div>
         </div>
