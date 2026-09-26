@@ -1,6 +1,9 @@
 import { apiRequest } from "@/lib/api/client";
 
-export type CarSaleSubmissionStatus = "pending" | "approved" | "rejected";
+export type CarSaleSubmissionStatus =
+  | "pending"
+  | "approved"
+  | "rejected";
 
 export type CarSaleSubmission = {
   submission_id: number;
@@ -12,11 +15,23 @@ export type CarSaleSubmission = {
   year: number | null;
   mileage: number | null;
 
-  condition_type: "New" | "Nigerian Used" | "Foreign Used" | null;
+  condition_type:
+    | "New"
+    | "Nigerian Used"
+    | "Foreign Used"
+    | null;
 
-  transmission: "Automatic" | "Manual" | null;
+  transmission:
+    | "Automatic"
+    | "Manual"
+    | null;
 
-  fuel_type: "Petrol" | "Diesel" | "Hybrid" | "Electric" | null;
+  fuel_type:
+    | "Petrol"
+    | "Diesel"
+    | "Hybrid"
+    | "Electric"
+    | null;
 
   color_exterior: string | null;
   expected_price: number | null;
@@ -33,11 +48,121 @@ export type CarSaleSubmission = {
   created_at: string;
   updated_at: string;
 
-  // These are optional because the repository may join
-  // customer/branch information into admin results.
-  
   branch_name?: string | null;
 };
+
+/* =========================================================
+   CUSTOMER
+   ========================================================= */
+
+export type CreateCarSaleSubmissionInput = {
+  branch_id: number;
+
+  make: string;
+  model: string;
+
+  year?: number;
+  mileage?: number;
+
+  condition_type?:
+    | "New"
+    | "Nigerian Used"
+    | "Foreign Used";
+
+  transmission?:
+    | "Automatic"
+    | "Manual";
+
+  fuel_type?:
+    | "Petrol"
+    | "Diesel"
+    | "Hybrid"
+    | "Electric";
+
+  color_exterior?: string;
+  expected_price?: number;
+  description?: string;
+  contact_phone?: string;
+};
+
+export type UpdateCarSaleSubmissionInput =
+  Partial<CreateCarSaleSubmissionInput>;
+
+export type CustomerCarSaleSubmissionResponse = {
+  success: boolean;
+
+  data: {
+    submission: CarSaleSubmission;
+  };
+
+  message: string;
+};
+
+export type CustomerCarSaleSubmissionsResponse = {
+  success: boolean;
+  data: CarSaleSubmission[];
+  message: string;
+};
+
+export async function createCarSaleSubmission(
+  input: CreateCarSaleSubmissionInput,
+): Promise<CustomerCarSaleSubmissionResponse> {
+  return apiRequest<CustomerCarSaleSubmissionResponse>(
+    "/car-sale-submissions",
+    {
+      method: "POST",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export async function getMyCarSaleSubmissions(): Promise<CustomerCarSaleSubmissionsResponse> {
+  return apiRequest<CustomerCarSaleSubmissionsResponse>(
+    "/car-sale-submissions/mine",
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function getMyCarSaleSubmission(
+  submissionId: number,
+): Promise<CustomerCarSaleSubmissionResponse> {
+  return apiRequest<CustomerCarSaleSubmissionResponse>(
+    `/car-sale-submissions/mine/${submissionId}`,
+    {
+      method: "GET",
+    },
+  );
+}
+
+export async function updateMyCarSaleSubmission(
+  submissionId: number,
+  input: UpdateCarSaleSubmissionInput,
+): Promise<CustomerCarSaleSubmissionResponse> {
+  return apiRequest<CustomerCarSaleSubmissionResponse>(
+    `/car-sale-submissions/mine/${submissionId}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(input),
+    },
+  );
+}
+
+export async function deleteMyCarSaleSubmission(
+  submissionId: number,
+): Promise<CustomerCarSaleSubmissionResponse> {
+  return apiRequest<CustomerCarSaleSubmissionResponse>(
+    `/car-sale-submissions/mine/${submissionId}`,
+    {
+      method: "DELETE",
+    },
+  );
+}
+
+/* =========================================================
+   ADMIN
+   ========================================================= */
 
 export type AdminCarSaleSubmissionsPagination = {
   page: number;
@@ -85,16 +210,30 @@ export async function getAdminCarSaleSubmissions(
   const searchParams = new URLSearchParams();
 
   if (params.status) {
-    searchParams.set("status", params.status);
+    searchParams.set(
+      "status",
+      params.status,
+    );
   }
 
-  if (params.branch_id !== undefined) {
-    searchParams.set("branch_id", String(params.branch_id));
+  if (
+    params.branch_id !== undefined
+  ) {
+    searchParams.set(
+      "branch_id",
+      String(params.branch_id),
+    );
   }
 
-  searchParams.set("page", String(params.page ?? 1));
+  searchParams.set(
+    "page",
+    String(params.page ?? 1),
+  );
 
-  searchParams.set("limit", String(params.limit ?? 20));
+  searchParams.set(
+    "limit",
+    String(params.limit ?? 20),
+  );
 
   return apiRequest<AdminCarSaleSubmissionsResponse>(
     `/admin/car-sale-submissions?${searchParams.toString()}`,
