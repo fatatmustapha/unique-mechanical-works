@@ -16,16 +16,11 @@ const branches = [
   },
   {
     name: "Kano",
-    address:
-      "No. 20 H.W Romai/Baba Brothers Street, Bompai Kano",
+    address: "No. 20 H.W Romai/Baba Brothers Street, Bompai Kano",
   },
 ];
 
-const phoneNumbers = [
-  "08037877610",
-  "08057877610",
-  "08097877610",
-];
+const phoneNumbers = ["08037877610", "08057877610", "08097877610"];
 
 const email = "uniquemwn@gmail.com";
 
@@ -90,7 +85,7 @@ function LockIcon() {
 
 export default function Footer() {
   return (
-    <footer className="bg-prussian text-white">
+    <footer id="contact" className="scroll-mt-24 bg-prussian text-white">
       <div className="mx-auto max-w-[1440px] px-5 py-20 sm:px-8 lg:px-12 lg:py-24">
         <div className="grid gap-14 border-b border-white/15 pb-16 lg:grid-cols-[1.15fr_0.65fr_1fr] lg:gap-20">
           {/* BRAND */}
@@ -106,8 +101,8 @@ export default function Footer() {
             </h2>
 
             <p className="mt-6 max-w-lg text-base leading-8 text-white/65">
-              Premium vehicle sales and professional automotive care across
-              Kano and Abuja.
+              Premium vehicle sales and professional automotive care across Kano
+              and Abuja.
             </p>
 
             <div className="mt-9">
@@ -116,7 +111,6 @@ export default function Footer() {
                 className="inline-flex min-h-13 items-center justify-center rounded-full bg-bronze px-7 text-sm font-bold text-prussian transition-all duration-300 hover:-translate-y-0.5 hover:bg-[#d9a83c]"
               >
                 Book an Appointment
-
                 <span aria-hidden="true" className="ml-3">
                   →
                 </span>
@@ -170,7 +164,6 @@ export default function Footer() {
                     className="mt-4 inline-flex items-center text-sm font-semibold text-bronze transition-colors duration-300 hover:text-white"
                   >
                     View on Google Maps
-
                     <span aria-hidden="true" className="ml-2">
                       ↗
                     </span>

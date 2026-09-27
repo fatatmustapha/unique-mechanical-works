@@ -31,7 +31,13 @@ const app: Express = express();
 
 app.disable("x-powered-by");
 
-app.use(helmet());
+app.use(
+  helmet({
+    crossOriginResourcePolicy: {
+      policy: "cross-origin",
+    },
+  }),
+);
 
 app.use(
   cors({

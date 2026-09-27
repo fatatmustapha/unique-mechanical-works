@@ -25,10 +25,11 @@ export type CarsQuery = {
     | "year_asc"
     | "year_desc";
 };
-
 export type CarResponse = {
   success: boolean;
-  data: Car;
+  data: {
+    car: Car;
+  };
   message?: string;
 };
 

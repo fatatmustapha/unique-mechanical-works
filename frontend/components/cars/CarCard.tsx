@@ -37,6 +37,7 @@ export default function CarCard({
           src={image}
           alt={imageAlt ?? name}
           fill
+          unoptimized
           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
           className="object-cover transition-transform duration-700 ease-out group-hover:scale-[1.055]"
         />
@@ -51,22 +52,15 @@ export default function CarCard({
         <div className="mt-3 flex flex-wrap gap-x-3 gap-y-2 font-mono text-xs uppercase tracking-[0.08em] text-slate">
           {year && <span>{year}</span>}
 
-          {year && transmission && (
+          {year && transmission && <span aria-hidden="true">•</span>}
+
+          {transmission && <span>{transmission}</span>}
+
+          {(year || transmission) && fuelType && (
             <span aria-hidden="true">•</span>
           )}
 
-          {transmission && (
-            <span>{transmission}</span>
-          )}
-
-          {(year || transmission) &&
-            fuelType && (
-              <span aria-hidden="true">•</span>
-            )}
-
-          {fuelType && (
-            <span>{fuelType}</span>
-          )}
+          {fuelType && <span>{fuelType}</span>}
         </div>
 
         <p className="mt-5 font-mono text-xl font-semibold text-prussian">
@@ -79,7 +73,6 @@ export default function CarCard({
             className="inline-flex min-h-12 items-center justify-center bg-bronze px-5 text-sm font-bold text-prussian transition-all duration-300 hover:bg-[#d9a83c]"
           >
             View Details
-
             <span
               aria-hidden="true"
               className="ml-2 transition-transform duration-300 group-hover:translate-x-1"
@@ -93,10 +86,7 @@ export default function CarCard({
             aria-label={`Save ${name} to favorites`}
             className="flex h-12 w-12 items-center justify-center border border-prussian/15 text-prussian transition-all duration-300 hover:border-bronze hover:bg-bronze"
           >
-            <Heart
-              size={20}
-              strokeWidth={1.8}
-            />
+            <Heart size={20} strokeWidth={1.8} />
           </button>
         </div>
       </div>

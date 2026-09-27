@@ -197,11 +197,14 @@ export default function Navbar({
     }
   }
 
-  const showSolidNavbar =
-    solid ||
-    scrolledPastHero ||
-    menuOpen ||
-    accountMenuOpen;
+  const isHomePage = pathname === "/";
+
+const showSolidNavbar =
+  solid ||
+  !isHomePage ||
+  scrolledPastHero ||
+  menuOpen ||
+  accountMenuOpen;
 
   return (
     <header

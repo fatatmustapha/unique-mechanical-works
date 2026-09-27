@@ -16,6 +16,11 @@ export type PublicationStatus =
   | "published"
   | "archived";
 
+export type ConditionType =
+  | "New"
+  | "Nigerian Used"
+  | "Foreign Used";
+
 export type Car = {
   car_id: number;
   reference_number: string;
@@ -30,6 +35,8 @@ export type Car = {
   year: number | null;
   price: number;
   mileage: number | null;
+
+  condition_type: ConditionType | null;
 
   transmission: Transmission | null;
   fuel_type: FuelType | null;
@@ -48,6 +55,9 @@ export type Car = {
   engine_size: string | null;
   horsepower: number | null;
 
+  num_doors: number | null;
+  num_seats: number | null;
+
   drivetrain:
     | "FWD"
     | "RWD"
@@ -55,9 +65,17 @@ export type Car = {
     | "4WD"
     | null;
 
+  registration_status: string | null;
+
+  num_previous_owners: number | null;
+
+  import_status: string | null;
+
   negotiable: boolean;
 
   features: string[] | null;
+
+  warranty_status: string | null;
 
   views_count?: number;
 
