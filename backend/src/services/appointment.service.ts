@@ -2,10 +2,12 @@ import { AppError } from "../errors/app-error.js";
 import {
   cancelCustomerAppointment,
   createCustomerAppointment,
+  rescheduleCustomerAppointment,
   findAdminAppointments,
   findAppointmentByIdForAdmin,
   findCustomerAppointmentById,
   findCustomerAppointments,
+  hideCustomerAppointment,
   updateAppointmentForAdmin,
   updateAppointmentStatus,
   type Appointment,
@@ -14,6 +16,7 @@ import { findBranchService } from "../repositories/branch-service.repository.js"
 import type {
   AdminAppointmentsQuery,
   CreateAppointmentInput,
+  RescheduleAppointmentInput,
   UpdateAppointmentAdminInput,
   UpdateAppointmentStatusInput,
 } from "../validators/appointment.validator.js";
@@ -38,17 +41,13 @@ const validateBookableBranchService = async (
   branchId: number,
   serviceId: number,
 ): Promise<void> => {
-  const branchService = await findBranchService(
-    serviceId,
-    branchId,
-  );
+  const branchService = await findBranchService(serviceId, branchId);
 
   if (!branchService) {
     throw new AppError({
       statusCode: 400,
       code: "SERVICE_NOT_OFFERED_AT_BRANCH",
-      message:
-        "The selected service is not offered at this branch.",
+      message: "The selected service is not offered at this branch.",
     });
   }
 
@@ -56,8 +55,7 @@ const validateBookableBranchService = async (
     throw new AppError({
       statusCode: 400,
       code: "SERVICE_NOT_AVAILABLE_AT_BRANCH",
-      message:
-        "The selected service is currently unavailable at this branch.",
+      message: "The selected service is currently unavailable at this branch.",
     });
   }
 };
@@ -87,34 +85,25 @@ export const createMyAppointment = async (
   customerId: number,
   input: CreateAppointmentInput,
 ): Promise<Appointment> => {
-  await validateBookableBranchService(
-    input.branch_id,
-    input.service_id,
-  );
+  await validateBookableBranchService(input.branch_id, input.service_id);
 
-  return createCustomerAppointment(
-    customerId,
-    input,
-  );
+  return createCustomerAppointment(customerId, input);
 };
 
 export const getMyAppointments = async (
   customerId: number,
 ): Promise<Appointment[]> => {
-  return findCustomerAppointments(
-    customerId,
-  );
+  return findCustomerAppointments(customerId);
 };
 
 export const getMyAppointment = async (
   customerId: number,
   appointmentId: number,
 ): Promise<Appointment> => {
-  const appointment =
-    await findCustomerAppointmentById(
-      appointmentId,
-      customerId,
-    );
+  const appointment = await findCustomerAppointmentById(
+    appointmentId,
+    customerId,
+  );
 
   if (!appointment) {
     throw new AppError({
@@ -131,49 +120,80 @@ export const cancelMyAppointment = async (
   customerId: number,
   appointmentId: number,
 ): Promise<Appointment> => {
-  const appointment = await getMyAppointment(
-    customerId,
-    appointmentId,
-  );
+  const appointment = await getMyAppointment(customerId, appointmentId);
 
   if (appointment.status === "cancelled") {
     throw new AppError({
       statusCode: 409,
       code: "APPOINTMENT_ALREADY_CANCELLED",
-      message:
-        "This appointment has already been cancelled.",
+      message: "This appointment has already been cancelled.",
     });
   }
 
   if (appointment.status === "completed") {
     throw new AppError({
       statusCode: 409,
-      code:
-        "COMPLETED_APPOINTMENT_CANNOT_BE_CANCELLED",
-      message:
-        "A completed appointment cannot be cancelled.",
+      code: "COMPLETED_APPOINTMENT_CANNOT_BE_CANCELLED",
+      message: "A completed appointment cannot be cancelled.",
     });
   }
 
-  const cancelled =
-    await cancelCustomerAppointment(
-      appointmentId,
-      customerId,
-    );
+  const cancelled = await cancelCustomerAppointment(appointmentId, customerId);
 
   if (!cancelled) {
     throw new AppError({
       statusCode: 409,
       code: "APPOINTMENT_CANNOT_BE_CANCELLED",
-      message:
-        "This appointment can no longer be cancelled.",
+      message: "This appointment can no longer be cancelled.",
     });
   }
 
-  return getMyAppointment(
-    customerId,
+  return getMyAppointment(customerId, appointmentId);
+};
+
+export const hideMyCancelledAppointment = async (
+  appointmentId: number,
+  customerId: number,
+): Promise<void> => {
+  const hidden = await hideCustomerAppointment(appointmentId, customerId);
+
+  if (!hidden) {
+    throw new Error(
+      "Cancelled appointment could not be removed from the dashboard.",
+    );
+  }
+};
+
+export const rescheduleMyAppointment = async (
+  customerId: number,
+  appointmentId: number,
+  input: RescheduleAppointmentInput,
+): Promise<Appointment> => {
+  const appointment = await getMyAppointment(customerId, appointmentId);
+
+  if (appointment.status !== "reschedule_requested") {
+    throw new AppError({
+      statusCode: 409,
+      code: "APPOINTMENT_RESCHEDULE_NOT_REQUESTED",
+      message: "This appointment is not currently awaiting a reschedule.",
+    });
+  }
+
+  const rescheduled = await rescheduleCustomerAppointment(
     appointmentId,
+    customerId,
+    input.scheduled_at,
   );
+
+  if (!rescheduled) {
+    throw new AppError({
+      statusCode: 409,
+      code: "APPOINTMENT_CANNOT_BE_RESCHEDULED",
+      message: "This appointment can no longer be rescheduled.",
+    });
+  }
+
+  return getMyAppointment(customerId, appointmentId);
 };
 
 /* =========================================================
@@ -187,22 +207,15 @@ export const getAppointmentsForAdmin = async (
   let branchId = query.branch_id;
 
   if (admin.adminRole === "branch_admin") {
-    if (
-      admin.branchId === undefined ||
-      admin.branchId === null
-    ) {
+    if (admin.branchId === undefined || admin.branchId === null) {
       throw new AppError({
         statusCode: 403,
         code: "ADMIN_BRANCH_REQUIRED",
-        message:
-          "This branch administrator is not assigned to a branch.",
+        message: "This branch administrator is not assigned to a branch.",
       });
     }
 
-    if (
-      branchId !== undefined &&
-      branchId !== admin.branchId
-    ) {
+    if (branchId !== undefined && branchId !== admin.branchId) {
       throw new AppError({
         statusCode: 403,
         code: "BRANCH_SCOPE_VIOLATION",
@@ -215,17 +228,11 @@ export const getAppointmentsForAdmin = async (
   }
 
   const result = await findAdminAppointments({
-    ...(query.status !== undefined
-      ? { status: query.status }
-      : {}),
+    ...(query.status !== undefined ? { status: query.status } : {}),
 
-    ...(branchId !== undefined
-      ? { branchId }
-      : {}),
+    ...(branchId !== undefined ? { branchId } : {}),
 
-    ...(query.service_id !== undefined
-      ? { serviceId: query.service_id }
-      : {}),
+    ...(query.service_id !== undefined ? { serviceId: query.service_id } : {}),
 
     page: query.page,
     limit: query.limit,
@@ -240,11 +247,7 @@ export const getAppointmentsForAdmin = async (
       total: result.total,
 
       totalPages:
-        result.total === 0
-          ? 0
-          : Math.ceil(
-              result.total / query.limit,
-            ),
+        result.total === 0 ? 0 : Math.ceil(result.total / query.limit),
     },
   };
 };
@@ -253,10 +256,7 @@ export const getAppointmentForAdmin = async (
   appointmentId: number,
   admin: AppointmentAdminScope,
 ): Promise<Appointment> => {
-  const appointment =
-    await findAppointmentByIdForAdmin(
-      appointmentId,
-    );
+  const appointment = await findAppointmentByIdForAdmin(appointmentId);
 
   if (!appointment) {
     throw new AppError({
@@ -266,10 +266,7 @@ export const getAppointmentForAdmin = async (
     });
   }
 
-  ensureAdminCanManageAppointment(
-    appointment,
-    admin,
-  );
+  ensureAdminCanManageAppointment(appointment, admin);
 
   return appointment;
 };
@@ -279,31 +276,19 @@ export const editAppointmentForAdmin = async (
   input: UpdateAppointmentAdminInput,
   admin: AppointmentAdminScope,
 ): Promise<Appointment> => {
-  const existing =
-    await getAppointmentForAdmin(
-      appointmentId,
-      admin,
-    );
+  const existing = await getAppointmentForAdmin(appointmentId, admin);
 
-  if (
-    existing.status === "completed" ||
-    existing.status === "cancelled"
-  ) {
+  if (existing.status === "completed" || existing.status === "cancelled") {
     throw new AppError({
       statusCode: 409,
       code: "APPOINTMENT_NOT_EDITABLE",
-      message:
-        "Completed or cancelled appointments cannot be edited.",
+      message: "Completed or cancelled appointments cannot be edited.",
     });
   }
 
-  const resultingBranchId =
-    input.branch_id ??
-    existing.branch_id;
+  const resultingBranchId = input.branch_id ?? existing.branch_id;
 
-  const resultingServiceId =
-    input.service_id ??
-    existing.service_id;
+  const resultingServiceId = input.service_id ?? existing.service_id;
 
   if (
     admin.adminRole === "branch_admin" &&
@@ -317,71 +302,47 @@ export const editAppointmentForAdmin = async (
     });
   }
 
-  if (
-    input.branch_id !== undefined ||
-    input.service_id !== undefined
-  ) {
-    await validateBookableBranchService(
-      resultingBranchId,
-      resultingServiceId,
-    );
+  if (input.branch_id !== undefined || input.service_id !== undefined) {
+    await validateBookableBranchService(resultingBranchId, resultingServiceId);
   }
 
-  await updateAppointmentForAdmin(
-    appointmentId,
-    input,
-  );
+  await updateAppointmentForAdmin(appointmentId, input);
 
-  return getAppointmentForAdmin(
-    appointmentId,
-    admin,
-  );
+  return getAppointmentForAdmin(appointmentId, admin);
 };
 
-export const changeAppointmentStatusForAdmin =
-  async (
-    appointmentId: number,
-    input: UpdateAppointmentStatusInput,
-    admin: AppointmentAdminScope,
-  ): Promise<Appointment> => {
-    const appointment =
-      await getAppointmentForAdmin(
-        appointmentId,
-        admin,
-      );
+export const changeAppointmentStatusForAdmin = async (
+  appointmentId: number,
+  input: UpdateAppointmentStatusInput,
+  admin: AppointmentAdminScope,
+): Promise<Appointment> => {
+  const appointment = await getAppointmentForAdmin(appointmentId, admin);
 
-    if (
-      appointment.status === "completed" &&
-      input.status !== "completed"
-    ) {
-      throw new AppError({
-        statusCode: 409,
-        code: "COMPLETED_APPOINTMENT_FINAL",
-        message:
-          "A completed appointment cannot be moved to another status.",
-      });
-    }
+  if (input.status === "completed" && appointment.status !== "confirmed") {
+    throw new AppError({
+      statusCode: 409,
+      code: "APPOINTMENT_MUST_BE_CONFIRMED_FIRST",
+      message: "Only a confirmed appointment can be marked as completed.",
+    });
+  }
 
-    if (
-      appointment.status === "cancelled" &&
-      input.status !== "cancelled"
-    ) {
-      throw new AppError({
-        statusCode: 409,
-        code: "CANCELLED_APPOINTMENT_FINAL",
-        message:
-          "A cancelled appointment cannot be moved to another status.",
-      });
-    }
+  if (appointment.status === "completed" && input.status !== "completed") {
+    throw new AppError({
+      statusCode: 409,
+      code: "COMPLETED_APPOINTMENT_FINAL",
+      message: "A completed appointment cannot be moved to another status.",
+    });
+  }
 
-    await updateAppointmentStatus(
-      appointmentId,
-      input.status,
-      input.admin_notes,
-    );
+  if (appointment.status === "cancelled" && input.status !== "cancelled") {
+    throw new AppError({
+      statusCode: 409,
+      code: "CANCELLED_APPOINTMENT_FINAL",
+      message: "A cancelled appointment cannot be moved to another status.",
+    });
+  }
 
-    return getAppointmentForAdmin(
-      appointmentId,
-      admin,
-    );
-  };
+  await updateAppointmentStatus(appointmentId, input.status, input.admin_notes);
+
+  return getAppointmentForAdmin(appointmentId, admin);
+};

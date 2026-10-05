@@ -1,7 +1,4 @@
-import type {
-  ResultSetHeader,
-  RowDataPacket,
-} from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import { databasePool } from "../config/database.js";
 import type {
@@ -12,6 +9,8 @@ import type {
 interface AppointmentRow extends RowDataPacket {
   appointment_id: number;
   customer_id: number;
+  customer_first_name: string;
+  customer_last_name: string;
 
   service_id: number;
   service_name: string;
@@ -32,9 +31,11 @@ interface AppointmentRow extends RowDataPacket {
   status:
     | "pending"
     | "confirmed"
+    | "reschedule_requested"
     | "completed"
     | "cancelled";
 
+  customer_hidden: number;
   cancelled_at: Date | null;
   completed_at: Date | null;
 
@@ -49,6 +50,8 @@ interface AppointmentCountRow extends RowDataPacket {
 export interface Appointment {
   appointment_id: number;
   customer_id: number;
+  customer_first_name: string;
+  customer_last_name: string;
 
   service_id: number;
   service_name: string;
@@ -69,9 +72,11 @@ export interface Appointment {
   status:
     | "pending"
     | "confirmed"
+    | "reschedule_requested"
     | "completed"
     | "cancelled";
 
+  customer_hidden: boolean;
   cancelled_at: Date | null;
   completed_at: Date | null;
 
@@ -83,6 +88,7 @@ export interface AdminAppointmentFilters {
   status?:
     | "pending"
     | "confirmed"
+    | "reschedule_requested"
     | "completed"
     | "cancelled";
 
@@ -103,6 +109,9 @@ const appointmentSelect = `
     a.appointment_id,
     a.customer_id,
 
+    c.first_name AS customer_first_name,
+c.last_name AS customer_last_name,
+
     a.service_id,
     s.name AS service_name,
 
@@ -120,6 +129,7 @@ const appointmentSelect = `
     a.admin_notes,
 
     a.status,
+    a.customer_hidden,
     a.cancelled_at,
     a.completed_at,
 
@@ -133,14 +143,18 @@ const appointmentSelect = `
 
   INNER JOIN branches b
     ON b.branch_id = a.branch_id
+
+    INNER JOIN customers c
+  ON c.customer_id = a.customer_id
 `;
 
-const mapAppointment = (
-  row: AppointmentRow,
-): Appointment => {
+const mapAppointment = (row: AppointmentRow): Appointment => {
   return {
     appointment_id: row.appointment_id,
     customer_id: row.customer_id,
+
+    customer_first_name: row.customer_first_name,
+    customer_last_name: row.customer_last_name,
 
     service_id: row.service_id,
     service_name: row.service_name,
@@ -153,13 +167,14 @@ const mapAppointment = (
     vehicle_make: row.vehicle_make,
     vehicle_model: row.vehicle_model,
     vehicle_year: row.vehicle_year,
-    vehicle_plate_number:
-      row.vehicle_plate_number,
+    vehicle_plate_number: row.vehicle_plate_number,
 
     customer_notes: row.customer_notes,
     admin_notes: row.admin_notes,
 
     status: row.status,
+
+    customer_hidden: Boolean(row.customer_hidden),
 
     cancelled_at: row.cancelled_at,
     completed_at: row.completed_at,
@@ -172,33 +187,49 @@ const mapAppointment = (
 export const findCustomerAppointments = async (
   customerId: number,
 ): Promise<Appointment[]> => {
-  const [rows] =
-    await databasePool.execute<AppointmentRow[]>(
-      `
+  const [rows] = await databasePool.execute<AppointmentRow[]>(
+    `
         ${appointmentSelect}
 
-        WHERE a.customer_id = ?
-
+WHERE a.customer_id = ?
+  AND a.customer_hidden = FALSE
         ORDER BY
           a.scheduled_at DESC,
           a.appointment_id DESC
       `,
-      [customerId],
-    );
+    [customerId],
+  );
 
   return rows.map(mapAppointment);
 };
 
-export const findCustomerAppointmentById =
-  async (
-    appointmentId: number,
-    customerId: number,
-  ): Promise<Appointment | null> => {
-    const [rows] =
-      await databasePool.execute<
-        AppointmentRow[]
-      >(
-        `
+export const hideCustomerAppointment = async (
+  appointmentId: number,
+  customerId: number,
+): Promise<boolean> => {
+  const [result] = await databasePool.execute<ResultSetHeader>(
+    `
+      UPDATE appointments
+      SET
+        customer_hidden = TRUE,
+        updated_at = CURRENT_TIMESTAMP
+      WHERE appointment_id = ?
+        AND customer_id = ?
+        AND status = 'cancelled'
+        AND customer_hidden = FALSE
+    `,
+    [appointmentId, customerId],
+  );
+
+  return result.affectedRows > 0;
+};
+
+export const findCustomerAppointmentById = async (
+  appointmentId: number,
+  customerId: number,
+): Promise<Appointment | null> => {
+  const [rows] = await databasePool.execute<AppointmentRow[]>(
+    `
           ${appointmentSelect}
 
           WHERE a.appointment_id = ?
@@ -206,27 +237,20 @@ export const findCustomerAppointmentById =
 
           LIMIT 1
         `,
-        [
-          appointmentId,
-          customerId,
-        ],
-      );
+    [appointmentId, customerId],
+  );
 
-    const appointment = rows[0];
+  const appointment = rows[0];
 
-    return appointment
-      ? mapAppointment(appointment)
-      : null;
-  };
+  return appointment ? mapAppointment(appointment) : null;
+};
 
-export const createCustomerAppointment =
-  async (
-    customerId: number,
-    input: CreateAppointmentInput,
-  ): Promise<Appointment> => {
-    const [result] =
-      await databasePool.execute<ResultSetHeader>(
-        `
+export const createCustomerAppointment = async (
+  customerId: number,
+  input: CreateAppointmentInput,
+): Promise<Appointment> => {
+  const [result] = await databasePool.execute<ResultSetHeader>(
+    `
           INSERT INTO appointments (
             customer_id,
             service_id,
@@ -240,44 +264,39 @@ export const createCustomerAppointment =
           )
           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
         `,
-        [
-          customerId,
-          input.service_id,
-          input.branch_id,
-          new Date(input.scheduled_at),
+    [
+      customerId,
+      input.service_id,
+      input.branch_id,
+      new Date(input.scheduled_at),
 
-          input.vehicle_make ?? null,
-          input.vehicle_model ?? null,
-          input.vehicle_year ?? null,
-          input.vehicle_plate_number ?? null,
+      input.vehicle_make ?? null,
+      input.vehicle_model ?? null,
+      input.vehicle_year ?? null,
+      input.vehicle_plate_number ?? null,
 
-          input.customer_notes ?? null,
-        ],
-      );
+      input.customer_notes ?? null,
+    ],
+  );
 
-    const appointment =
-      await findCustomerAppointmentById(
-        result.insertId,
-        customerId,
-      );
+  const appointment = await findCustomerAppointmentById(
+    result.insertId,
+    customerId,
+  );
 
-    if (!appointment) {
-      throw new Error(
-        "The newly created appointment could not be retrieved.",
-      );
-    }
+  if (!appointment) {
+    throw new Error("The newly created appointment could not be retrieved.");
+  }
 
-    return appointment;
-  };
+  return appointment;
+};
 
-export const cancelCustomerAppointment =
-  async (
-    appointmentId: number,
-    customerId: number,
-  ): Promise<boolean> => {
-    const [result] =
-      await databasePool.execute<ResultSetHeader>(
-        `
+export const cancelCustomerAppointment = async (
+  appointmentId: number,
+  customerId: number,
+): Promise<boolean> => {
+  const [result] = await databasePool.execute<ResultSetHeader>(
+    `
           UPDATE appointments
 
           SET
@@ -291,14 +310,37 @@ export const cancelCustomerAppointment =
               'confirmed'
             )
         `,
-        [
-          appointmentId,
-          customerId,
-        ],
-      );
+    [appointmentId, customerId],
+  );
 
-    return result.affectedRows > 0;
-  };
+  return result.affectedRows > 0;
+};
+
+export const rescheduleCustomerAppointment = async (
+  appointmentId: number,
+  customerId: number,
+  scheduledAt: string,
+): Promise<boolean> => {
+  const [result] = await databasePool.execute<ResultSetHeader>(
+    `
+          UPDATE appointments
+
+          SET
+            scheduled_at = ?,
+            status = 'pending',
+            admin_notes = NULL,
+            cancelled_at = NULL,
+            completed_at = NULL
+
+          WHERE appointment_id = ?
+            AND customer_id = ?
+            AND status = 'reschedule_requested'
+        `,
+    [new Date(scheduledAt), appointmentId, customerId],
+  );
+
+  return result.affectedRows > 0;
+};
 
 export const findAdminAppointments = async (
   filters: AdminAppointmentFilters,
@@ -322,16 +364,12 @@ export const findAdminAppointments = async (
   }
 
   const whereClause =
-    conditions.length > 0
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
-  const offset =
-    (filters.page - 1) * filters.limit;
+  const offset = (filters.page - 1) * filters.limit;
 
-  const [rows] =
-    await databasePool.execute<AppointmentRow[]>(
-      `
+  const [rows] = await databasePool.execute<AppointmentRow[]>(
+    `
         ${appointmentSelect}
 
         ${whereClause}
@@ -343,24 +381,17 @@ export const findAdminAppointments = async (
         LIMIT ?
         OFFSET ?
       `,
-      [
-        ...values,
-        filters.limit,
-        offset,
-      ],
-    );
+    [...values, filters.limit, offset],
+  );
 
-  const [countRows] =
-    await databasePool.execute<
-      AppointmentCountRow[]
-    >(
-      `
+  const [countRows] = await databasePool.execute<AppointmentCountRow[]>(
+    `
         SELECT COUNT(*) AS total
         FROM appointments a
         ${whereClause}
       `,
-      values,
-    );
+    values,
+  );
 
   return {
     appointments: rows.map(mapAppointment),
@@ -368,128 +399,94 @@ export const findAdminAppointments = async (
   };
 };
 
-export const findAppointmentByIdForAdmin =
-  async (
-    appointmentId: number,
-  ): Promise<Appointment | null> => {
-    const [rows] =
-      await databasePool.execute<
-        AppointmentRow[]
-      >(
-        `
+export const findAppointmentByIdForAdmin = async (
+  appointmentId: number,
+): Promise<Appointment | null> => {
+  const [rows] = await databasePool.execute<AppointmentRow[]>(
+    `
           ${appointmentSelect}
 
           WHERE a.appointment_id = ?
 
           LIMIT 1
         `,
-        [appointmentId],
-      );
+    [appointmentId],
+  );
 
-    const appointment = rows[0];
+  const appointment = rows[0];
 
-    return appointment
-      ? mapAppointment(appointment)
-      : null;
+  return appointment ? mapAppointment(appointment) : null;
+};
+
+export const updateAppointmentForAdmin = async (
+  appointmentId: number,
+  input: UpdateAppointmentAdminInput,
+): Promise<void> => {
+  const updates: string[] = [];
+
+  const values: Array<string | number | Date | null> = [];
+
+  const add = (column: string, value: string | number | Date | null): void => {
+    updates.push(`${column} = ?`);
+    values.push(value);
   };
 
-export const updateAppointmentForAdmin =
-  async (
-    appointmentId: number,
-    input: UpdateAppointmentAdminInput,
-  ): Promise<void> => {
-    const updates: string[] = [];
+  if (input.service_id !== undefined) {
+    add("service_id", input.service_id);
+  }
 
-    const values: Array<
-      string | number | Date | null
-    > = [];
+  if (input.branch_id !== undefined) {
+    add("branch_id", input.branch_id);
+  }
 
-    const add = (
-      column: string,
-      value: string | number | Date | null,
-    ): void => {
-      updates.push(`${column} = ?`);
-      values.push(value);
-    };
+  if (input.scheduled_at !== undefined) {
+    add("scheduled_at", new Date(input.scheduled_at));
+  }
 
-    if (input.service_id !== undefined) {
-      add("service_id", input.service_id);
-    }
+  if (input.vehicle_make !== undefined) {
+    add("vehicle_make", input.vehicle_make);
+  }
 
-    if (input.branch_id !== undefined) {
-      add("branch_id", input.branch_id);
-    }
+  if (input.vehicle_model !== undefined) {
+    add("vehicle_model", input.vehicle_model);
+  }
 
-    if (input.scheduled_at !== undefined) {
-      add(
-        "scheduled_at",
-        new Date(input.scheduled_at),
-      );
-    }
+  if (input.vehicle_year !== undefined) {
+    add("vehicle_year", input.vehicle_year);
+  }
 
-    if (input.vehicle_make !== undefined) {
-      add(
-        "vehicle_make",
-        input.vehicle_make,
-      );
-    }
+  if (input.vehicle_plate_number !== undefined) {
+    add("vehicle_plate_number", input.vehicle_plate_number);
+  }
 
-    if (input.vehicle_model !== undefined) {
-      add(
-        "vehicle_model",
-        input.vehicle_model,
-      );
-    }
+  if (input.customer_notes !== undefined) {
+    add("customer_notes", input.customer_notes);
+  }
 
-    if (input.vehicle_year !== undefined) {
-      add(
-        "vehicle_year",
-        input.vehicle_year,
-      );
-    }
+  if (input.admin_notes !== undefined) {
+    add("admin_notes", input.admin_notes);
+  }
 
-    if (
-      input.vehicle_plate_number !== undefined
-    ) {
-      add(
-        "vehicle_plate_number",
-        input.vehicle_plate_number,
-      );
-    }
+  values.push(appointmentId);
 
-    if (input.customer_notes !== undefined) {
-      add(
-        "customer_notes",
-        input.customer_notes,
-      );
-    }
-
-    if (input.admin_notes !== undefined) {
-      add(
-        "admin_notes",
-        input.admin_notes,
-      );
-    }
-
-    values.push(appointmentId);
-
-    await databasePool.execute<ResultSetHeader>(
-      `
+  await databasePool.execute<ResultSetHeader>(
+    `
         UPDATE appointments
 
         SET ${updates.join(", ")}
 
         WHERE appointment_id = ?
       `,
-      values,
-    );
-  };
+    values,
+  );
+};
 
 export const updateAppointmentStatus = async (
   appointmentId: number,
   status:
     | "pending"
     | "confirmed"
+    | "reschedule_requested"
     | "completed"
     | "cancelled",
   adminNotes: string | null | undefined,
@@ -505,10 +502,7 @@ export const updateAppointmentStatus = async (
           admin_notes = COALESCE(?, admin_notes)
         WHERE appointment_id = ?
       `,
-      [
-        adminNotes ?? null,
-        appointmentId,
-      ],
+      [adminNotes ?? null, appointmentId],
     );
 
     return;
@@ -525,10 +519,7 @@ export const updateAppointmentStatus = async (
           admin_notes = COALESCE(?, admin_notes)
         WHERE appointment_id = ?
       `,
-      [
-        adminNotes ?? null,
-        appointmentId,
-      ],
+      [adminNotes ?? null, appointmentId],
     );
 
     return;
@@ -544,10 +535,6 @@ export const updateAppointmentStatus = async (
         admin_notes = COALESCE(?, admin_notes)
       WHERE appointment_id = ?
     `,
-    [
-      status,
-      adminNotes ?? null,
-      appointmentId,
-    ],
+    [status, adminNotes ?? null, appointmentId],
   );
 };

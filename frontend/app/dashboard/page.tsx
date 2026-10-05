@@ -24,12 +24,72 @@ import Navbar from "@/components/layout/Navbar";
 import { getCurrentUser, logout } from "@/lib/api/auth";
 
 import {
+  cancelMyAppointment,
+  hideMyCancelledAppointment,
+  getMyAppointments,
+  rescheduleMyAppointment,
+} from "@/lib/api/appointments";
+
+import CustomerSelect from "@/components/customer/CustomerSelect";
+
+import type { Appointment } from "@/types/appointment";
+
+import {
   deleteMyCarSaleSubmission,
   getMyCarSaleSubmissions,
   type CarSaleSubmission,
 } from "@/lib/api/car-sale-submissions";
 
 import type { Customer } from "@/types/auth";
+
+const rescheduleMonthOptions = [
+  { value: "01", label: "January" },
+  { value: "02", label: "February" },
+  { value: "03", label: "March" },
+  { value: "04", label: "April" },
+  { value: "05", label: "May" },
+  { value: "06", label: "June" },
+  { value: "07", label: "July" },
+  { value: "08", label: "August" },
+  { value: "09", label: "September" },
+  { value: "10", label: "October" },
+  { value: "11", label: "November" },
+  { value: "12", label: "December" },
+];
+
+const rescheduleCurrentYear = new Date().getFullYear();
+
+const rescheduleYearOptions = [
+  {
+    value: rescheduleCurrentYear.toString(),
+    label: rescheduleCurrentYear.toString(),
+  },
+  {
+    value: (rescheduleCurrentYear + 1).toString(),
+    label: (rescheduleCurrentYear + 1).toString(),
+  },
+];
+
+const rescheduleHourOptions = [
+  { value: "08", label: "08" },
+  { value: "09", label: "09" },
+  { value: "10", label: "10" },
+  { value: "11", label: "11" },
+  { value: "12", label: "12" },
+  { value: "01", label: "01" },
+  { value: "02", label: "02" },
+  { value: "03", label: "03" },
+  { value: "04", label: "04" },
+  { value: "05", label: "05" },
+  { value: "06", label: "06" },
+];
+
+const rescheduleMinuteOptions = [
+  { value: "00", label: "00" },
+  { value: "15", label: "15" },
+  { value: "30", label: "30" },
+  { value: "45", label: "45" },
+];
 
 export default function CustomerDashboardPage() {
   const router = useRouter();
@@ -38,9 +98,76 @@ export default function CustomerDashboardPage() {
 
   const [submissions, setSubmissions] = useState<CarSaleSubmission[]>([]);
 
+  const [appointments, setAppointments] = useState<Appointment[]>([]);
+
   const [loading, setLoading] = useState(true);
 
   const [submissionsLoading, setSubmissionsLoading] = useState(true);
+
+  const [appointmentsLoading, setAppointmentsLoading] = useState(true);
+
+  const [cancellingAppointmentId, setCancellingAppointmentId] = useState<
+    number | null
+  >(null);
+
+  const [reschedulingAppointmentId, setReschedulingAppointmentId] = useState<
+    number | null
+  >(null);
+
+  const [rescheduleDate, setRescheduleDate] = useState("");
+
+  const [rescheduleTime, setRescheduleTime] = useState("");
+
+  const rescheduleToday = new Date();
+
+  const rescheduleDateParts = rescheduleDate.split("-");
+
+  const rescheduleSelectedYear =
+    Number(rescheduleDateParts[0]) || rescheduleCurrentYear;
+
+  const rescheduleSelectedMonth =
+    Number(rescheduleDateParts[1]) || rescheduleToday.getMonth() + 1;
+
+  const availableRescheduleMonths =
+    rescheduleSelectedYear === rescheduleToday.getFullYear()
+      ? rescheduleMonthOptions.filter(
+          (month) => Number(month.value) >= rescheduleToday.getMonth() + 1,
+        )
+      : rescheduleMonthOptions;
+
+  const daysInRescheduleMonth = new Date(
+    rescheduleSelectedYear,
+    rescheduleSelectedMonth,
+    0,
+  ).getDate();
+
+  const availableRescheduleDays = Array.from(
+    { length: daysInRescheduleMonth },
+    (_, index) => index + 1,
+  )
+    .filter((day) => {
+      const candidateDate = new Date(
+        rescheduleSelectedYear,
+        rescheduleSelectedMonth - 1,
+        day,
+      );
+
+      const todayDate = new Date(
+        rescheduleToday.getFullYear(),
+        rescheduleToday.getMonth(),
+        rescheduleToday.getDate(),
+      );
+
+      return candidateDate >= todayDate;
+    })
+    .map((day) => {
+      const value = String(day).padStart(2, "0");
+
+      return {
+        value,
+        label: value,
+      };
+    });
 
   const [error, setError] = useState<string | null>(null);
 
@@ -96,6 +223,32 @@ export default function CustomerDashboardPage() {
         } finally {
           if (active) {
             setSubmissionsLoading(false);
+          }
+        }
+
+        try {
+          setAppointmentsLoading(true);
+
+          const appointmentResponse = await getMyAppointments();
+
+          if (!active) {
+            return;
+          }
+
+          setAppointments(appointmentResponse ?? []);
+        } catch (appointmentError) {
+          if (!active) {
+            return;
+          }
+
+          setError(
+            appointmentError instanceof Error
+              ? appointmentError.message
+              : "We could not load your appointments.",
+          );
+        } finally {
+          if (active) {
+            setAppointmentsLoading(false);
           }
         }
       } catch {
@@ -166,6 +319,39 @@ export default function CustomerDashboardPage() {
     }
   }
 
+  async function handleCancelAppointment(appointmentId: number) {
+    const confirmed = window.confirm(
+      "Are you sure you want to cancel this appointment?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError(null);
+      setCancellingAppointmentId(appointmentId);
+
+      const cancelledAppointment = await cancelMyAppointment(appointmentId);
+
+      setAppointments((current) =>
+        current.map((appointment) =>
+          appointment.appointment_id === appointmentId
+            ? cancelledAppointment
+            : appointment,
+        ),
+      );
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "We could not cancel this appointment. Please try again.",
+      );
+    } finally {
+      setCancellingAppointmentId(null);
+    }
+  }
+
   if (loading) {
     return (
       <>
@@ -195,6 +381,108 @@ export default function CustomerDashboardPage() {
   }
 
   const fullName = `${customer.first_name} ${customer.last_name}`.trim();
+
+  async function handleRescheduleAppointment() {
+    if (!reschedulingAppointmentId) {
+      return;
+    }
+
+    const completeDatePattern = /^\d{4}-\d{2}-\d{2}$/;
+
+    if (!completeDatePattern.test(rescheduleDate) || !rescheduleTime) {
+      setError("Please choose a complete new date and time.");
+      return;
+    }
+
+    const [hourPart, minutePart] = rescheduleTime.split(":");
+
+    const hour = Number(hourPart);
+    const minute = Number(minutePart);
+
+    let hour24: number;
+
+    if (hour >= 8 && hour <= 11) {
+      hour24 = hour;
+    } else if (hour === 12) {
+      hour24 = 12;
+    } else if (hour >= 1 && hour <= 6) {
+      hour24 = hour + 12;
+    } else {
+      setError("Please choose a valid appointment time.");
+      return;
+    }
+
+    if (hour === 6 && minute !== 0) {
+      setError("The latest appointment time is 6:00 PM.");
+      return;
+    }
+
+    const value24 = `${String(hour24).padStart(
+      2,
+      "0",
+    )}:${String(minute).padStart(2, "0")}`;
+
+    const scheduledDate = new Date(`${rescheduleDate}T${value24}:00+01:00`);
+
+    if (
+      Number.isNaN(scheduledDate.getTime()) ||
+      scheduledDate.getTime() <= Date.now()
+    ) {
+      setError("Please choose a future appointment date and time.");
+      return;
+    }
+
+    try {
+      setError("");
+
+      const updatedAppointment = await rescheduleMyAppointment(
+        reschedulingAppointmentId,
+        {
+          scheduled_at: scheduledDate.toISOString(),
+        },
+      );
+
+      setAppointments((current) =>
+        current.map((appointment) =>
+          appointment.appointment_id === updatedAppointment.appointment_id
+            ? updatedAppointment
+            : appointment,
+        ),
+      );
+
+      setReschedulingAppointmentId(null);
+      setRescheduleDate("");
+      setRescheduleTime("");
+    } catch {
+      setError("We could not reschedule your appointment. Please try again.");
+    }
+  }
+
+  async function handleHideCancelledAppointment(appointmentId: number) {
+    const confirmed = window.confirm(
+      "Remove this cancelled appointment from your dashboard?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      setError("");
+
+      await hideMyCancelledAppointment(appointmentId);
+
+      setAppointments((current) =>
+        current.filter(
+          (appointment) => appointment.appointment_id !== appointmentId,
+        ),
+      );
+    } catch {
+      setError(
+        "We could not remove this appointment from your dashboard. Please try again.",
+      );
+    }
+  }
 
   return (
     <>
@@ -397,20 +685,229 @@ export default function CustomerDashboardPage() {
                 </p>
               </div>
 
-              <div className="p-6">
-                <p className="text-sm leading-6 text-[#6B7280]">
-                  You can schedule your vehicle with the UMW mechanical team
-                  from your account.
-                </p>
+              {appointmentsLoading ? (
+                <div className="space-y-4 p-6">
+                  {[1, 2].map((item) => (
+                    <div
+                      key={item}
+                      className="animate-pulse border border-gray-200 p-5"
+                    >
+                      <div className="h-5 w-36 bg-gray-200" />
+                      <div className="mt-3 h-4 w-24 bg-gray-100" />
+                      <div className="mt-6 h-4 w-48 bg-gray-100" />
+                    </div>
+                  ))}
+                </div>
+              ) : appointments.length === 0 ? (
+                <div className="px-6 py-10">
+                  <p className="text-sm leading-6 text-[#6B7280]">
+                    You do not have any service appointments yet.
+                  </p>
 
-                <Link
-                  href="/book-appointment"
-                  className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#08294B] transition hover:text-[#D19A24]"
-                >
-                  Book service
-                  <ChevronRight size={16} />
-                </Link>
-              </div>
+                  <Link
+                    href="/book-appointment"
+                    className="mt-5 inline-flex items-center gap-2 text-sm font-bold text-[#08294B] transition hover:text-[#D19A24]"
+                  >
+                    Book service
+                    <ChevronRight size={16} />
+                  </Link>
+                </div>
+              ) : (
+                <div className="space-y-4 p-6">
+                  {appointments.map((appointment) => (
+                    <div key={appointment.appointment_id}>
+                      <AppointmentCard
+                        appointment={appointment}
+                        cancelling={
+                          cancellingAppointmentId === appointment.appointment_id
+                        }
+                        onCancel={handleCancelAppointment}
+                        onHideCancelled={() =>
+                          handleHideCancelledAppointment(
+                            appointment.appointment_id,
+                          )
+                        }
+                        onChooseNewTime={() => {
+                          setReschedulingAppointmentId(
+                            appointment.appointment_id,
+                          );
+                          setRescheduleDate("");
+                          setRescheduleTime("");
+                        }}
+                      />
+
+                      {reschedulingAppointmentId ===
+                        appointment.appointment_id && (
+                        <div className="border border-t-0 border-prussian/10 bg-white p-5 sm:p-6">
+                          <h3 className="font-heading text-lg font-bold text-prussian">
+                            Choose a New Date & Time
+                          </h3>
+
+                          <p className="mt-2 text-sm leading-6 text-slate">
+                            Select another appointment time for UMW to review.
+                          </p>
+
+                          <div className="mt-5 grid gap-5 lg:grid-cols-2">
+                            {/* DATE */}
+                            <div>
+                              <p className="mb-2 text-sm font-semibold text-prussian">
+                                New Date *
+                              </p>
+
+                              <div className="grid grid-cols-[1.4fr_0.8fr_1fr] gap-2">
+                                <CustomerSelect
+                                  value={rescheduleDate.split("-")[1] ?? ""}
+                                  options={availableRescheduleMonths}
+                                  onChange={(month) => {
+                                    const parts = rescheduleDate.split("-");
+                                    const year =
+                                      parts[0] ||
+                                      rescheduleCurrentYear.toString();
+
+                                    setRescheduleDate(`${year}-${month}-`);
+                                  }}
+                                  placeholder="Month"
+                                  ariaLabel="Select new appointment month"
+                                />
+
+                                <CustomerSelect
+                                  value={rescheduleDate.split("-")[2] ?? ""}
+                                  options={availableRescheduleDays}
+                                  onChange={(day) => {
+                                    const parts = rescheduleDate.split("-");
+
+                                    const year =
+                                      parts[0] ||
+                                      rescheduleCurrentYear.toString();
+
+                                    const month =
+                                      parts[1] ||
+                                      String(
+                                        new Date().getMonth() + 1,
+                                      ).padStart(2, "0");
+
+                                    setRescheduleDate(
+                                      `${year}-${month}-${day}`,
+                                    );
+                                  }}
+                                  placeholder="Day"
+                                  ariaLabel="Select new appointment day"
+                                />
+
+                                <CustomerSelect
+                                  value={rescheduleDate.split("-")[0] ?? ""}
+                                  options={rescheduleYearOptions}
+                                  onChange={(year) => {
+                                    const parts = rescheduleDate.split("-");
+
+                                    const month =
+                                      parts[1] ||
+                                      String(
+                                        new Date().getMonth() + 1,
+                                      ).padStart(2, "0");
+
+                                    setRescheduleDate(`${year}-${month}-`);
+                                  }}
+                                  placeholder="Year"
+                                  ariaLabel="Select new appointment year"
+                                />
+                              </div>
+                            </div>
+
+                            {/* TIME */}
+                            <div>
+                              <p className="mb-2 text-sm font-semibold text-prussian">
+                                New Time *
+                              </p>
+
+                              <div className="flex items-center gap-2">
+                                <div className="min-w-0 flex-1">
+                                  <CustomerSelect
+                                    value={rescheduleTime.split(":")[0] ?? ""}
+                                    options={rescheduleHourOptions}
+                                    onChange={(hour) => {
+                                      const currentMinute =
+                                        rescheduleTime.split(":")[1] || "";
+
+                                      const minute =
+                                        hour === "06" ? "00" : currentMinute;
+
+                                      setRescheduleTime(`${hour}:${minute}`);
+                                    }}
+                                    placeholder="Hour"
+                                    ariaLabel="Select new appointment hour"
+                                  />
+                                </div>
+
+                                <span className="text-xl font-bold text-prussian">
+                                  :
+                                </span>
+
+                                <div className="min-w-0 flex-1">
+                                  <CustomerSelect
+                                    value={rescheduleTime.split(":")[1] ?? ""}
+                                    options={
+                                      rescheduleTime.split(":")[0] === "06"
+                                        ? [{ value: "00", label: "00" }]
+                                        : rescheduleMinuteOptions
+                                    }
+                                    onChange={(minute) => {
+                                      const hour =
+                                        rescheduleTime.split(":")[0] || "";
+
+                                      setRescheduleTime(`${hour}:${minute}`);
+                                    }}
+                                    placeholder="Min"
+                                    ariaLabel="Select new appointment minute"
+                                  />
+                                </div>
+
+                                {rescheduleTime.split(":")[0] && (
+                                  <div className="flex min-h-12 min-w-14 items-center justify-center border border-bronze/40 bg-[#F7F8FA] px-3 text-sm font-bold text-bronze">
+                                    {Number(rescheduleTime.split(":")[0]) >=
+                                      8 &&
+                                    Number(rescheduleTime.split(":")[0]) <= 11
+                                      ? "AM"
+                                      : "PM"}
+                                  </div>
+                                )}
+                              </div>
+
+                              <p className="mt-2 text-xs text-slate/70">
+                                Opening hours: 8:00 AM – 6:00 PM
+                              </p>
+                            </div>
+                          </div>
+
+                          <div className="mt-5 flex flex-wrap gap-3">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                void handleRescheduleAppointment();
+                              }}
+                              className="min-h-11 bg-bronze px-5 text-sm font-bold text-prussian transition hover:bg-[#d9a83c]"
+                            >
+                              Submit New Time
+                            </button>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setReschedulingAppointmentId(null);
+                                setRescheduleDate("");
+                                setRescheduleTime("");
+                              }}
+                              className="min-h-11 border border-prussian/20 px-5 text-sm font-bold text-prussian transition hover:border-prussian"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* PROFILE */}
@@ -633,5 +1130,184 @@ function StatusMessage({ submission }: { submission: CarSaleSubmission }) {
         Your submission has been received and is currently pending review.
       </p>
     </div>
+  );
+}
+
+function AppointmentCard({
+  appointment,
+  cancelling,
+  onCancel,
+  onHideCancelled,
+  onChooseNewTime,
+}: {
+  appointment: Appointment;
+  cancelling: boolean;
+  onCancel: (appointmentId: number) => void;
+  onHideCancelled: () => void;
+  onChooseNewTime: () => void;
+}) {
+  const appointmentDate = new Intl.DateTimeFormat("en-NG", {
+    timeZone: "Africa/Lagos",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(appointment.scheduled_at));
+
+  const appointmentTime = new Intl.DateTimeFormat("en-NG", {
+    timeZone: "Africa/Lagos",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(appointment.scheduled_at));
+
+  const statusLabels = {
+    pending: "Pending",
+    confirmed: "Confirmed",
+    reschedule_requested: "Reschedule Requested",
+    completed: "Completed",
+    cancelled: "Cancelled",
+  };
+
+  return (
+    <article className="border border-gray-200 bg-white p-5 transition duration-300 hover:shadow-md">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.12em] text-[#6B7280]">
+            Appointment #{appointment.appointment_id}
+          </p>
+
+          <h3 className="mt-2 font-heading text-xl font-bold text-[#08294B]">
+            {appointment.service_name}
+          </h3>
+
+          <p className="mt-1 text-sm text-[#6B7280]">
+            {appointment.branch_name}
+          </p>
+        </div>
+
+        <span className="w-fit border border-[#D19A24]/30 bg-[#D19A24]/10 px-2.5 py-1.5 text-xs font-bold uppercase tracking-[0.08em] text-[#8A6416]">
+          {statusLabels[appointment.status]}
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-4 border-t border-gray-100 pt-5 sm:grid-cols-2">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#6B7280]">
+            Date
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-[#08294B]">
+            {appointmentDate}
+          </p>
+        </div>
+
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#6B7280]">
+            Time
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-[#08294B]">
+            {appointmentTime}
+          </p>
+        </div>
+      </div>
+
+      {(appointment.vehicle_make ||
+        appointment.vehicle_model ||
+        appointment.vehicle_year) && (
+        <div className="mt-5 border-t border-gray-100 pt-5">
+          <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#6B7280]">
+            Vehicle
+          </p>
+
+          <p className="mt-1 text-sm font-semibold text-[#08294B]">
+            {[
+              appointment.vehicle_make,
+              appointment.vehicle_model,
+              appointment.vehicle_year,
+            ]
+              .filter(Boolean)
+              .join(" ")}
+          </p>
+
+          {appointment.vehicle_plate_number && (
+            <p className="mt-1 text-xs text-[#6B7280]">
+              Plate: {appointment.vehicle_plate_number}
+            </p>
+          )}
+        </div>
+      )}
+
+      {appointment.status === "pending" && (
+        <div className="mt-5 border-l-2 border-[#D19A24] pl-3">
+          <p className="text-sm font-semibold text-[#08294B]">
+            Waiting for UMW review
+          </p>
+
+          <p className="mt-1 text-xs leading-5 text-[#6B7280]">
+            Your appointment request has been received. UMW will confirm it or
+            request another time.
+          </p>
+        </div>
+      )}
+
+      {appointment.status === "reschedule_requested" && (
+        <div className="mt-5 border-l-2 border-[#D19A24] bg-[#D19A24]/5 px-4 py-3">
+          <p className="text-sm font-semibold text-[#08294B]">
+            UMW has requested a new appointment time
+          </p>
+
+          {appointment.admin_notes && (
+            <div className="mt-3">
+              <p className="text-xs font-bold uppercase tracking-[0.1em] text-[#6B7280]">
+                Message from UMW
+              </p>
+
+              <p className="mt-1 text-sm leading-6 text-[#08294B]">
+                {appointment.admin_notes}
+              </p>
+            </div>
+          )}
+
+          <p className="mt-3 text-xs leading-5 text-[#6B7280]">
+            Please choose another date and time for your appointment.
+          </p>
+
+          <button
+            type="button"
+            onClick={onChooseNewTime}
+            className="mt-4 inline-flex h-10 items-center justify-center bg-[#08294B] px-5 text-sm font-bold text-white transition hover:bg-[#061f39]"
+          >
+            Choose New Date & Time
+          </button>
+        </div>
+      )}
+
+      {(appointment.status === "pending" ||
+        appointment.status === "confirmed") && (
+        <div className="mt-5 border-t border-gray-100 pt-4">
+          <button
+            type="button"
+            disabled={cancelling}
+            onClick={() => onCancel(appointment.appointment_id)}
+            className="inline-flex items-center gap-2 text-sm font-semibold text-[#6B1D1D] transition hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <XCircle size={16} />
+
+            {cancelling ? "Cancelling..." : "Cancel appointment"}
+          </button>
+        </div>
+      )}
+      {appointment.status === "cancelled" && (
+        <button
+          type="button"
+          onClick={onHideCancelled}
+          className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-slate transition hover:text-[#6B1D1D]"
+        >
+          <Trash2 size={16} />
+          Remove from dashboard
+        </button>
+      )}
+    </article>
   );
 }

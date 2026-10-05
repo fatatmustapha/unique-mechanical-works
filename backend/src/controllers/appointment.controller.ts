@@ -1,12 +1,9 @@
-import type {
-  NextFunction,
-  Request,
-  Response,
-} from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { AppError } from "../errors/app-error.js";
 import {
   cancelMyAppointment,
+  rescheduleMyAppointment,
   changeAppointmentStatusForAdmin,
   createMyAppointment,
   editAppointmentForAdmin,
@@ -14,46 +11,36 @@ import {
   getAppointmentsForAdmin,
   getMyAppointment,
   getMyAppointments,
+  hideMyCancelledAppointment,
 } from "../services/appointment.service.js";
 import { sendSuccess } from "../utils/api-response.js";
 import {
   adminAppointmentsQuerySchema,
   appointmentIdParamSchema,
   createAppointmentSchema,
+  rescheduleAppointmentSchema,
   updateAppointmentAdminSchema,
   updateAppointmentStatusSchema,
 } from "../validators/appointment.validator.js";
 
-const getCustomerId = (
-  request: Request,
-): number => {
-  if (
-    !request.user ||
-    request.user.accountType !== "customer"
-  ) {
+const getCustomerId = (request: Request): number => {
+  if (!request.user || request.user.accountType !== "customer") {
     throw new AppError({
       statusCode: 401,
       code: "AUTHENTICATION_REQUIRED",
-      message:
-        "Customer authentication is required.",
+      message: "Customer authentication is required.",
     });
   }
 
   return request.user.id;
 };
 
-const getAdminUser = (
-  request: Request,
-) => {
-  if (
-    !request.user ||
-    request.user.accountType !== "admin"
-  ) {
+const getAdminUser = (request: Request) => {
+  if (!request.user || request.user.accountType !== "admin") {
     throw new AppError({
       statusCode: 401,
       code: "AUTHENTICATION_REQUIRED",
-      message:
-        "Administrator authentication is required.",
+      message: "Administrator authentication is required.",
     });
   }
 
@@ -70,19 +57,11 @@ export const bookAppointment = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const customerId =
-      getCustomerId(request);
+    const customerId = getCustomerId(request);
 
-    const input =
-      createAppointmentSchema.parse(
-        request.body,
-      );
+    const input = createAppointmentSchema.parse(request.body);
 
-    const appointment =
-      await createMyAppointment(
-        customerId,
-        input,
-      );
+    const appointment = await createMyAppointment(customerId, input);
 
     sendSuccess(
       response,
@@ -101,13 +80,9 @@ export const getMine = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const customerId =
-      getCustomerId(request);
+    const customerId = getCustomerId(request);
 
-    const appointments =
-      await getMyAppointments(
-        customerId,
-      );
+    const appointments = await getMyAppointments(customerId);
 
     sendSuccess(
       response,
@@ -126,19 +101,11 @@ export const getMineById = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const customerId =
-      getCustomerId(request);
+    const customerId = getCustomerId(request);
 
-    const { id } =
-      appointmentIdParamSchema.parse(
-        request.params,
-      );
+    const { id } = appointmentIdParamSchema.parse(request.params);
 
-    const appointment =
-      await getMyAppointment(
-        customerId,
-        id,
-      );
+    const appointment = await getMyAppointment(customerId, id);
 
     sendSuccess(
       response,
@@ -157,25 +124,65 @@ export const cancelMine = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const customerId =
-      getCustomerId(request);
+    const customerId = getCustomerId(request);
 
-    const { id } =
-      appointmentIdParamSchema.parse(
-        request.params,
-      );
+    const { id } = appointmentIdParamSchema.parse(request.params);
 
-    const appointment =
-      await cancelMyAppointment(
-        customerId,
-        id,
-      );
+    const appointment = await cancelMyAppointment(customerId, id);
 
     sendSuccess(
       response,
       200,
       { appointment },
       "Appointment cancelled successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const rescheduleMine = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const customerId = getCustomerId(request);
+
+    const { id } = appointmentIdParamSchema.parse(request.params);
+
+    const input = rescheduleAppointmentSchema.parse(request.body);
+
+    const appointment = await rescheduleMyAppointment(customerId, id, input);
+
+    sendSuccess(
+      response,
+      200,
+      { appointment },
+      "Appointment rescheduled successfully and is awaiting confirmation.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};
+
+export const hideMine = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const customerId = getCustomerId(request);
+
+    const { id } = appointmentIdParamSchema.parse(request.params);
+
+    await hideMyCancelledAppointment(id, customerId);
+
+    sendSuccess(
+      response,
+      200,
+      null,
+      "Appointment removed from your dashboard.",
     );
   } catch (error: unknown) {
     next(error);
@@ -192,19 +199,11 @@ export const getAdminAppointments = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const admin =
-      getAdminUser(request);
+    const admin = getAdminUser(request);
 
-    const query =
-      adminAppointmentsQuerySchema.parse(
-        request.query,
-      );
+    const query = adminAppointmentsQuerySchema.parse(request.query);
 
-    const result =
-      await getAppointmentsForAdmin(
-        query,
-        admin,
-      );
+    const result = await getAppointmentsForAdmin(query, admin);
 
     sendSuccess(
       response,
@@ -223,19 +222,11 @@ export const getAdminAppointment = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const admin =
-      getAdminUser(request);
+    const admin = getAdminUser(request);
 
-    const { id } =
-      appointmentIdParamSchema.parse(
-        request.params,
-      );
+    const { id } = appointmentIdParamSchema.parse(request.params);
 
-    const appointment =
-      await getAppointmentForAdmin(
-        id,
-        admin,
-      );
+    const appointment = await getAppointmentForAdmin(id, admin);
 
     sendSuccess(
       response,
@@ -254,25 +245,13 @@ export const updateAdminAppointment = async (
   next: NextFunction,
 ): Promise<void> => {
   try {
-    const admin =
-      getAdminUser(request);
+    const admin = getAdminUser(request);
 
-    const { id } =
-      appointmentIdParamSchema.parse(
-        request.params,
-      );
+    const { id } = appointmentIdParamSchema.parse(request.params);
 
-    const input =
-      updateAppointmentAdminSchema.parse(
-        request.body,
-      );
+    const input = updateAppointmentAdminSchema.parse(request.body);
 
-    const appointment =
-      await editAppointmentForAdmin(
-        id,
-        input,
-        admin,
-      );
+    const appointment = await editAppointmentForAdmin(id, input, admin);
 
     sendSuccess(
       response,
@@ -285,40 +264,27 @@ export const updateAdminAppointment = async (
   }
 };
 
-export const updateAdminAppointmentStatus =
-  async (
-    request: Request,
-    response: Response,
-    next: NextFunction,
-  ): Promise<void> => {
-    try {
-      const admin =
-        getAdminUser(request);
+export const updateAdminAppointmentStatus = async (
+  request: Request,
+  response: Response,
+  next: NextFunction,
+): Promise<void> => {
+  try {
+    const admin = getAdminUser(request);
 
-      const { id } =
-        appointmentIdParamSchema.parse(
-          request.params,
-        );
+    const { id } = appointmentIdParamSchema.parse(request.params);
 
-      const input =
-        updateAppointmentStatusSchema.parse(
-          request.body,
-        );
+    const input = updateAppointmentStatusSchema.parse(request.body);
 
-      const appointment =
-        await changeAppointmentStatusForAdmin(
-          id,
-          input,
-          admin,
-        );
+    const appointment = await changeAppointmentStatusForAdmin(id, input, admin);
 
-      sendSuccess(
-        response,
-        200,
-        { appointment },
-        "Appointment status updated successfully.",
-      );
-    } catch (error: unknown) {
-      next(error);
-    }
-  };
+    sendSuccess(
+      response,
+      200,
+      { appointment },
+      "Appointment status updated successfully.",
+    );
+  } catch (error: unknown) {
+    next(error);
+  }
+};

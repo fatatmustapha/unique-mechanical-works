@@ -79,6 +79,26 @@ export const createAppointmentSchema = z.object({
     .optional(),
 });
 
+export const rescheduleAppointmentSchema = z.object({
+  scheduled_at: z
+    .string()
+    .datetime({
+      message:
+        "scheduled_at must be a valid ISO date and time.",
+    })
+    .refine(
+      (value) => new Date(value).getTime() > Date.now(),
+      {
+        message:
+          "The appointment must be rescheduled to a future date and time.",
+      },
+    ),
+});
+
+export type RescheduleAppointmentInput = z.infer<
+  typeof rescheduleAppointmentSchema
+>;
+
 export type CreateAppointmentInput = z.infer<
   typeof createAppointmentSchema
 >;
@@ -88,6 +108,7 @@ export const adminAppointmentsQuerySchema = z.object({
     .enum([
       "pending",
       "confirmed",
+      "reschedule_requested",
       "completed",
       "cancelled",
     ])
@@ -190,20 +211,36 @@ export const updateAppointmentAdminSchema = z
     },
   );
 
-export const updateAppointmentStatusSchema = z.object({
-  status: z.enum([
-    "pending",
-    "confirmed",
-    "completed",
-    "cancelled",
-  ]),
+export const updateAppointmentStatusSchema = z
+  .object({
+    status: z.enum([
+      "pending",
+      "confirmed",
+      "reschedule_requested",
+      "completed",
+      "cancelled",
+    ]),
 
-  admin_notes: z
-    .string()
-    .trim()
-    .nullable()
-    .optional(),
-});
+    admin_notes: z
+      .string()
+      .trim()
+      .nullable()
+      .optional(),
+  })
+  .superRefine((data, ctx) => {
+    if (
+      data.status === "reschedule_requested" &&
+      (!data.admin_notes ||
+        data.admin_notes.trim().length === 0)
+    ) {
+      ctx.addIssue({
+        code: "custom",
+        path: ["admin_notes"],
+        message:
+          "A message is required when requesting a reschedule.",
+      });
+    }
+  });
 
 export type AdminAppointmentsQuery = z.infer<
   typeof adminAppointmentsQuerySchema

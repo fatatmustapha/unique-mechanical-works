@@ -3,8 +3,10 @@ import { Router } from "express";
 import {
   bookAppointment,
   cancelMine,
+  rescheduleMine,
   getMine,
   getMineById,
+  hideMine,
 } from "../controllers/appointment.controller.js";
 import {
   authenticate,
@@ -40,5 +42,20 @@ appointmentRouter.patch(
   requireCustomer,
   cancelMine,
 );
+
+appointmentRouter.patch(
+  "/mine/:id/hide",
+  authenticate,
+  requireCustomer,
+  hideMine,
+);
+
+appointmentRouter.patch(
+  "/mine/:id/reschedule",
+  authenticate,
+  requireCustomer,
+  rescheduleMine,
+);
+
 
 export default appointmentRouter;
