@@ -17,7 +17,7 @@ const navigation = [
   },
   {
     label: "Services",
-    href: "/#services",
+    href: "/services",
   },
   {
     label: "About Us",

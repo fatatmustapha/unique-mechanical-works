@@ -26,6 +26,7 @@ import favoriteRouter from "./routes/favorite.routes.js";
 import adminDashboardRouter from "./routes/admin-dashboard.routes.js";
 import testimonialRouter from "./routes/testimonial.routes.js";
 import adminTestimonialRouter from "./routes/admin-testimonial.routes.js";
+import serviceShowcaseRoutes from "./routes/service-showcase.routes.js";
 
 const app: Express = express();
 
@@ -67,6 +68,7 @@ app.use("/api/auth", authRouter);
 app.use("/api/customers", customerRouter);
 app.use("/api/branches", branchRouter);
 app.use("/api/services", serviceRouter);
+app.use("/api/service-showcases", serviceShowcaseRoutes);
 app.use("/api/cars", carRouter);
 app.use("/api/admin/cars", adminCarRouter);
 app.use("/api/cars/:id/images", carImageRouter);

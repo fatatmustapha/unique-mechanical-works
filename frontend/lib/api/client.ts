@@ -16,16 +16,13 @@ async function refreshSession(): Promise<boolean> {
 
   refreshPromise = (async () => {
     try {
-      const response = await fetch(
-        `${API_URL}/auth/refresh`,
-        {
-          method: "POST",
-          credentials: "include",
-          headers: {
-            "Content-Type": "application/json",
-          },
+      const response = await fetch(`${API_URL}/auth/refresh`, {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
         },
-      );
+      });
 
       return response.ok;
     } catch {
@@ -49,19 +46,24 @@ export async function apiRequest<T>(
     ...requestOptions
   } = options;
 
-  const makeRequest = () =>
-    fetch(`${API_URL}${endpoint}`, {
+  const makeRequest = () => {
+    const isFormData = requestOptions.body instanceof FormData;
+
+    return fetch(`${API_URL}${endpoint}`, {
       ...requestOptions,
 
-      credentials: skipCredentials
-        ? "omit"
-        : "include",
+      credentials: skipCredentials ? "omit" : "include",
 
       headers: {
-        "Content-Type": "application/json",
+        ...(isFormData
+          ? {}
+          : {
+              "Content-Type": "application/json",
+            }),
         ...headers,
       },
     });
+  };
 
   let response = await makeRequest();
 
@@ -80,17 +82,14 @@ export async function apiRequest<T>(
     endpoint !== "/auth/login" &&
     endpoint !== "/auth/admin/login"
   ) {
-    const refreshed =
-      await refreshSession();
+    const refreshed = await refreshSession();
 
     if (refreshed) {
       response = await makeRequest();
     }
   }
 
-  const data = await response
-    .json()
-    .catch(() => null);
+  const data = await response.json().catch(() => null);
 
   if (!response.ok) {
     const message =

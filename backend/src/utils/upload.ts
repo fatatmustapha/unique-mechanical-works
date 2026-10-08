@@ -69,3 +69,45 @@ export const carImageUpload = multer({
     fileSize: 10 * 1024 * 1024,
   },
 });
+
+const serviceShowcaseUploadDirectory = path.resolve(
+  process.cwd(),
+  "uploads",
+  "service-showcases",
+);
+
+const serviceShowcaseStorage = multer.diskStorage({
+  destination: (
+    _request,
+    _file,
+    callback,
+  ) => {
+    callback(null, serviceShowcaseUploadDirectory);
+  },
+
+  filename: (
+    _request,
+    file,
+    callback,
+  ) => {
+    const extension = path.extname(file.originalname);
+
+    const randomPart = crypto
+      .randomBytes(8)
+      .toString("hex");
+
+    const filename =
+      `showcase-${Date.now()}-${randomPart}${extension}`;
+
+    callback(null, filename);
+  },
+});
+
+export const serviceShowcaseImageUpload = multer({
+  storage: serviceShowcaseStorage,
+  fileFilter,
+
+  limits: {
+    fileSize: 10 * 1024 * 1024,
+  },
+});
