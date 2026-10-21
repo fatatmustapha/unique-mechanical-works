@@ -7,9 +7,9 @@ import {
   CarFront,
   FileText,
   LogOut,
-  MessageSquareQuote,
   Store,
   Wrench,
+  ChartNoAxesCombined,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -19,59 +19,54 @@ import { logout } from "@/lib/api/auth";
 const dashboardItems = [
   {
     title: "Vehicles",
-    description:
-      "Add, edit, publish and manage vehicles for sale.",
+    description: "Add, edit, publish and manage vehicles for sale.",
     href: "/admin/vehicles",
     action: "Manage Vehicles",
     icon: CarFront,
   },
   {
     title: "Car Submissions",
-    description:
-      "Review vehicles submitted by customers.",
+    description: "Review vehicles submitted by customers.",
     href: "/admin/car-submissions",
     action: "Review Submissions",
     icon: Store,
   },
   {
     title: "Appointments",
-    description:
-      "Manage customer service appointments.",
+    description: "Manage customer service appointments.",
     href: "/admin/appointments",
     action: "Manage Appointments",
     icon: CalendarDays,
   },
   {
     title: "Services",
-    description:
-      "Manage workshop services and branch availability.",
+    description: "Manage workshop services and branch availability.",
     href: "/admin/services",
     action: "Manage Services",
     icon: Wrench,
   },
   {
     title: "Invoices",
-    description:
-      "View and manage customer invoices.",
+    description: "View and manage customer invoices.",
     href: "/admin/invoices",
     action: "Manage Invoices",
     icon: FileText,
   },
+
   {
-    title: "Testimonials",
+    title: "Analytics",
     description:
-      "Review and moderate customer testimonials.",
-    href: "/admin/testimonials",
-    action: "Manage Testimonials",
-    icon: MessageSquareQuote,
+      "Monitor workshop performance, customer activity, appointments and business statistics.",
+    href: "/admin/analytics",
+    action: "View Analytics",
+    icon: ChartNoAxesCombined,
   },
 ];
 
 export default function AdminDashboardPage() {
   const router = useRouter();
 
-  const [loggingOut, setLoggingOut] =
-    useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   async function handleLogout() {
     if (loggingOut) {
@@ -96,10 +91,7 @@ export default function AdminDashboardPage() {
       <header className="border-b border-white/10 bg-prussian text-white">
         <div className="mx-auto flex min-h-28 max-w-[1440px] items-center justify-between gap-6 px-5 sm:px-8 lg:px-12">
           {/* LOGO + ADMIN TITLE */}
-          <Link
-            href="/admin"
-            className="flex items-center gap-4"
-          >
+          <Link href="/admin" className="flex items-center gap-4">
             <Image
               src="/brand/umw-logo.png"
               alt="Unique Mechanical Works"
@@ -129,9 +121,7 @@ export default function AdminDashboardPage() {
           >
             <LogOut size={17} />
 
-            {loggingOut
-              ? "Signing Out..."
-              : "Sign Out"}
+            {loggingOut ? "Signing Out..." : "Sign Out"}
           </button>
         </div>
       </header>
@@ -148,9 +138,8 @@ export default function AdminDashboardPage() {
           </h1>
 
           <p className="mt-5 max-w-2xl text-base leading-8 text-slate">
-            Manage vehicles, workshop operations,
-            customer activity and business content
-            from one secure dashboard.
+            Manage vehicles, workshop operations, customer activity and business
+            content from one secure dashboard.
           </p>
         </section>
 

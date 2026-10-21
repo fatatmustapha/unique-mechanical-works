@@ -22,11 +22,14 @@ import appointmentRouter from "./routes/appointment.routes.js";
 import adminAppointmentRouter from "./routes/admin-appointment.routes.js";
 import invoiceRouter from "./routes/invoice.routes.js";
 import adminInvoiceRouter from "./routes/admin-invoice.routes.js";
+import invoiceContactRouter from "./routes/invoice-contact.routes.js";
+import invoiceArchiveRouter from "./routes/invoice-archive.routes.js";
 import favoriteRouter from "./routes/favorite.routes.js";
 import adminDashboardRouter from "./routes/admin-dashboard.routes.js";
 import testimonialRouter from "./routes/testimonial.routes.js";
 import adminTestimonialRouter from "./routes/admin-testimonial.routes.js";
 import serviceShowcaseRoutes from "./routes/service-showcase.routes.js";
+import invoiceContactRoutes from "./routes/invoice-contact.routes.js";
 
 const app: Express = express();
 
@@ -79,10 +82,13 @@ app.use("/api/appointments", appointmentRouter);
 app.use("/api/admin/appointments", adminAppointmentRouter);
 app.use("/api/invoices", invoiceRouter);
 app.use("/api/admin/invoices", adminInvoiceRouter);
+
+app.use("/api/admin/invoice-archive", invoiceArchiveRouter);
 app.use("/api/favorites", favoriteRouter);
 app.use("/api/admin/dashboard", adminDashboardRouter);
 app.use("/api/testimonials", testimonialRouter);
 app.use("/api/admin/testimonials", adminTestimonialRouter);
+app.use("/api/admin/invoice-contacts", invoiceContactRoutes);
 
 // These must remain after all valid routes.
 app.use(notFoundMiddleware);

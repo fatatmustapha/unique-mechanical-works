@@ -1,7 +1,4 @@
-import type {
-  ResultSetHeader,
-  RowDataPacket,
-} from "mysql2";
+import type { ResultSetHeader, RowDataPacket } from "mysql2";
 
 import { databasePool } from "../config/database.js";
 import type { PublicCustomer } from "./auth.repository.js";
@@ -37,9 +34,7 @@ export interface CustomerListResult {
   total: number;
 }
 
-const mapCustomer = (
-  customer: CustomerRow,
-): PublicCustomer => {
+const mapCustomer = (customer: CustomerRow): PublicCustomer => {
   return {
     customer_id: customer.customer_id,
     first_name: customer.first_name,
@@ -164,17 +159,19 @@ export const listCustomers = async (
 
   if (query.search !== undefined) {
     conditions.push(`
-      (
-        first_name LIKE ?
-        OR last_name LIKE ?
-        OR email LIKE ?
-        OR phone LIKE ?
-      )
-    `);
+    (
+      first_name LIKE ?
+      OR last_name LIKE ?
+      OR CONCAT(first_name, ' ', last_name) LIKE ?
+      OR email LIKE ?
+      OR phone LIKE ?
+    )
+  `);
 
     const searchPattern = `%${query.search}%`;
 
     values.push(
+      searchPattern,
       searchPattern,
       searchPattern,
       searchPattern,
@@ -188,15 +185,12 @@ export const listCustomers = async (
   }
 
   const whereClause =
-    conditions.length > 0
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
+    conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
   const offset = (query.page - 1) * query.limit;
 
-  const [customerRows] =
-    await databasePool.execute<CustomerRow[]>(
-      `
+  const [customerRows] = await databasePool.execute<CustomerRow[]>(
+    `
         SELECT
           customer_id,
           first_name,
@@ -215,18 +209,17 @@ export const listCustomers = async (
         LIMIT ?
         OFFSET ?
       `,
-      [...values, query.limit, offset],
-    );
+    [...values, query.limit, offset],
+  );
 
-  const [countRows] =
-    await databasePool.execute<CustomerCountRow[]>(
-      `
+  const [countRows] = await databasePool.execute<CustomerCountRow[]>(
+    `
         SELECT COUNT(*) AS total
         FROM customers
         ${whereClause}
       `,
-      values,
-    );
+    values,
+  );
 
   return {
     customers: customerRows.map(mapCustomer),
@@ -238,15 +231,14 @@ export const updateCustomerStatus = async (
   customerId: number,
   isActive: boolean,
 ): Promise<boolean> => {
-  const [result] =
-    await databasePool.execute<ResultSetHeader>(
-      `
+  const [result] = await databasePool.execute<ResultSetHeader>(
+    `
         UPDATE customers
         SET is_active = ?
         WHERE customer_id = ?
       `,
-      [isActive, customerId],
-    );
+    [isActive, customerId],
+  );
 
   return result.affectedRows > 0;
 };
